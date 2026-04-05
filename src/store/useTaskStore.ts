@@ -177,6 +177,7 @@ const formatTasks = (rows: Record<string, string>[]): ReliefTask[] => {
       urgency_level: derivedUrgency,
       status: normalizeStatus(obj.status),
       timestamp: obj.timestamp || new Date().toISOString(),
+      submitted_by: obj.email || 'ngo@email.com',
       assigned_to: obj.assigned_to || undefined,
     } as ReliefTask & { people: number };
   }).sort((a, b) => b.priority_score - a.priority_score);

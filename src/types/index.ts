@@ -19,6 +19,7 @@ export interface ReliefTask {
   urgency_level: UrgencyLevel;
   status: TaskStatus;
   assigned_to?: string;
+  submitted_by?: string;
   processed_timestamp?: string;
 }
 
