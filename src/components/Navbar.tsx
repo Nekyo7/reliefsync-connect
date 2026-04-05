@@ -43,10 +43,7 @@ export const Navbar = () => {
 
         <div className="hidden md:flex items-center gap-3">
           <Link to="/login">
-            <Button variant="ghost" size="sm">Log In</Button>
-          </Link>
-          <Link to="/register">
-            <Button variant="hero" size="sm">Get Started</Button>
+            <Button variant="hero" size="sm">Log In</Button>
           </Link>
         </div>
 
@@ -68,8 +65,7 @@ export const Navbar = () => {
             </Link>
           ))}
           <div className="flex gap-2 pt-2">
-            <Link to="/login" className="flex-1"><Button variant="ghost" size="sm" className="w-full">Log In</Button></Link>
-            <Link to="/register" className="flex-1"><Button variant="hero" size="sm" className="w-full">Get Started</Button></Link>
+            <Link to="/login" className="flex-1"><Button variant="hero" size="sm" className="w-full">Log In</Button></Link>
           </div>
         </div>
       )}

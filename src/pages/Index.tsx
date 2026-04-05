@@ -50,10 +50,6 @@ const Index = () => {
         </div>
         <div className="container relative z-10 grid gap-8 lg:grid-cols-2 items-center py-16">
           <div className="space-y-6 animate-fade-in">
-            <div className="inline-flex items-center gap-2 rounded-full bg-background/10 px-4 py-1.5 text-sm text-background/80 backdrop-blur-sm border border-background/20">
-              <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
-              Real-time Relief Coordination
-            </div>
             <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-background leading-tight">
               Give Hope.<br />
               <span className="text-secondary">Deliver Relief.</span>
@@ -74,31 +70,6 @@ const Index = () => {
               </Link>
             </div>
           </div>
-          <div className="relative hidden lg:block">
-            <div className="absolute -bottom-6 -left-6 bg-card rounded-xl p-4 shadow-lg animate-slide-in">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-destructive/15 flex items-center justify-center">
-                  <Zap className="h-5 w-5 text-destructive" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">3 Critical Tasks</p>
-                  <p className="text-xs text-muted-foreground">Awaiting volunteers</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="border-b bg-card py-12">
-        <div className="container grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat, i) => (
-            <div key={i} className="text-center animate-count-up" style={{ animationDelay: `${i * 0.1}s` }}>
-              <div className="font-heading text-3xl md:text-4xl font-bold text-primary">{stat.value}</div>
-              <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
-            </div>
-          ))}
         </div>
       </section>
 
