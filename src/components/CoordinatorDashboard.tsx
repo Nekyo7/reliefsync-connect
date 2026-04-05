@@ -1,6 +1,5 @@
 import { Briefcase, MapPin } from "lucide-react";
 import type { ReliefTask } from "@/types";
-import { TaskMap } from "./TaskMap";
 
 interface CoordinatorDashboardProps {
   stats: any;
@@ -34,11 +33,6 @@ export default function CoordinatorDashboard({ stats, tasks }: CoordinatorDashbo
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="mb-8">
-        <h3 className="mb-4 font-heading text-lg font-semibold text-foreground">Live Task Map</h3>
-        <TaskMap tasks={tasks} />
       </div>
 
       <div className="rounded-xl border border-secondary/20 bg-card p-6 shadow-[var(--card-shadow)]">

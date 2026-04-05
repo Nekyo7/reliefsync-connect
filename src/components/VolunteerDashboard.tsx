@@ -1,6 +1,5 @@
 import { MapPin, Star } from "lucide-react";
 import type { ReliefTask, Volunteer } from "@/types";
-import { TaskMap } from "./TaskMap";
 
 interface VolunteerDashboardProps {
   volunteer: any;
@@ -38,13 +37,6 @@ export default function VolunteerDashboard({
           <p><strong className="text-foreground">Skills:</strong> {volunteer.skills?.join(", ") || "None listed"}</p>
         </div>
       </div>
-
-      {recommendedTasks.length > 0 && (
-        <div className="mb-8">
-          <h3 className="mb-4 font-heading text-lg font-semibold text-foreground">Matched Task Map</h3>
-          <TaskMap tasks={recommendedTasks} />
-        </div>
-      )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {matchedTasks.length > 0 ? matchedTasks.map((task) => (
