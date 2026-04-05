@@ -1,13 +1,20 @@
 import { Heart, Users, Globe, Target } from "lucide-react";
 import childrenHope from "@/assets/children-hope.jpg";
-import volunteersAction from "@/assets/volunteers-action.jpg";
+import medicalRelief from "@/assets/medical-relief.jpg";
+import communityCenter from "@/assets/community-center.jpg";
+import shelterBuilding from "@/assets/shelter-building.jpg";
 
 const About = () => (
   <div className="min-h-screen bg-background">
-    <section className="bg-primary text-primary-foreground py-20">
-      <div className="container text-center max-w-3xl">
-        <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4">About ReliefSync</h1>
-        <p className="text-primary-foreground/80 text-lg">
+    {/* Hero with image background */}
+    <section className="relative py-24">
+      <div className="absolute inset-0">
+        <img src={shelterBuilding} alt="" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-foreground/75" />
+      </div>
+      <div className="container relative z-10 text-center max-w-3xl">
+        <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4 text-background">About ReliefSync</h1>
+        <p className="text-background/80 text-lg">
           We believe technology can transform how communities respond to crises. ReliefSync bridges the gap between those in need and those ready to help.
         </p>
       </div>
@@ -25,7 +32,43 @@ const About = () => (
           </p>
         </div>
         <div className="rounded-xl overflow-hidden">
-          <img src={childrenHope} alt="Children receiving aid" loading="lazy" width={640} height={640} className="w-full h-80 object-cover" />
+          <img src={childrenHope} alt="Children receiving aid" loading="lazy" width={640} height={480} className="w-full h-80 object-cover" />
+        </div>
+      </div>
+    </section>
+
+    {/* Team / Story section with images */}
+    <section className="py-16">
+      <div className="container grid gap-12 md:grid-cols-2 items-center">
+        <div className="rounded-xl overflow-hidden md:order-first">
+          <img src={communityCenter} alt="Community center volunteers" loading="lazy" width={640} height={480} className="w-full h-80 object-cover" />
+        </div>
+        <div>
+          <h2 className="font-heading text-3xl font-bold text-foreground mb-4">Built by Communities</h2>
+          <p className="text-muted-foreground mb-4">
+            ReliefSync was born from first-hand experience in disaster response. We saw the chaos of uncoordinated efforts — duplicated work, missed needs, and wasted resources.
+          </p>
+          <p className="text-muted-foreground">
+            Our platform ensures that every volunteer's time creates maximum impact, and every community need receives the attention it deserves.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    {/* Medical outreach image */}
+    <section className="py-16">
+      <div className="container grid gap-12 md:grid-cols-2 items-center">
+        <div>
+          <h2 className="font-heading text-3xl font-bold text-foreground mb-4">Reaching Every Corner</h2>
+          <p className="text-muted-foreground mb-4">
+            From rural health clinics to urban food banks, ReliefSync connects relief efforts across diverse contexts. Our platform adapts to local needs while maintaining global coordination standards.
+          </p>
+          <p className="text-muted-foreground">
+            We partner with NGOs, government agencies, and community organizations to ensure comprehensive coverage.
+          </p>
+        </div>
+        <div className="rounded-xl overflow-hidden">
+          <img src={medicalRelief} alt="Medical relief team in action" loading="lazy" width={640} height={480} className="w-full h-80 object-cover" />
         </div>
       </div>
     </section>

@@ -5,6 +5,10 @@ import heroCommunity from "@/assets/hero-community.jpg";
 import childrenHope from "@/assets/children-hope.jpg";
 import volunteersAction from "@/assets/volunteers-action.jpg";
 import waterDistribution from "@/assets/water-distribution.jpg";
+import communityCenter from "@/assets/community-center.jpg";
+import medicalRelief from "@/assets/medical-relief.jpg";
+import shelterBuilding from "@/assets/shelter-building.jpg";
+import foodDistribution from "@/assets/food-distribution.jpg";
 
 const Index = () => {
   const stats = [
@@ -25,26 +29,36 @@ const Index = () => {
 
   const solutions = [
     { image: childrenHope, title: "Education & Child Welfare", description: "Supporting schools, learning materials, and safe spaces for children in crisis zones." },
-    { image: volunteersAction, title: "Shelter & Infrastructure", description: "Coordinating construction of temporary shelters and rebuilding damaged infrastructure." },
+    { image: shelterBuilding, title: "Shelter & Infrastructure", description: "Coordinating construction of temporary shelters and rebuilding damaged infrastructure." },
     { image: waterDistribution, title: "Water & Sanitation", description: "Connecting communities with clean water access and sanitation facilities." },
+    { image: foodDistribution, title: "Food & Nutrition", description: "Organizing food drives and ensuring nutritional support reaches every family." },
+  ];
+
+  const stories = [
+    { image: communityCenter, title: "Community Center Revival", location: "Philippines", quote: "ReliefSync helped us coordinate 40 volunteers to rebuild our community center in just 3 weeks." },
+    { image: medicalRelief, title: "Rural Health Outreach", location: "East Africa", quote: "Medical teams reached 500+ families in remote villages through coordinated relief efforts." },
+    { image: volunteersAction, title: "Disaster Response", location: "South Asia", quote: "Within hours of the flood, volunteers were matched and deployed to the hardest-hit areas." },
   ];
 
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden bg-primary min-h-[85vh] flex items-center">
-        <div className="absolute inset-0 bg-[var(--hero-gradient)]" />
+      <section className="relative overflow-hidden min-h-[85vh] flex items-center">
+        <div className="absolute inset-0">
+          <img src={heroCommunity} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-foreground/70" />
+        </div>
         <div className="container relative z-10 grid gap-8 lg:grid-cols-2 items-center py-16">
           <div className="space-y-6 animate-fade-in">
-            <div className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/10 px-4 py-1.5 text-sm text-primary-foreground/80 backdrop-blur-sm border border-primary-foreground/20">
+            <div className="inline-flex items-center gap-2 rounded-full bg-background/10 px-4 py-1.5 text-sm text-background/80 backdrop-blur-sm border border-background/20">
               <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
               Real-time Relief Coordination
             </div>
-            <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground leading-tight">
+            <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold text-background leading-tight">
               Give Hope.<br />
               <span className="text-secondary">Deliver Relief.</span>
             </h1>
-            <p className="text-lg text-primary-foreground/80 max-w-lg">
+            <p className="text-lg text-background/80 max-w-lg">
               ReliefSync transforms scattered community needs into prioritized, actionable tasks — connecting volunteers with the people who need them most.
             </p>
             <div className="flex flex-wrap gap-4">
@@ -61,13 +75,10 @@ const Index = () => {
             </div>
           </div>
           <div className="relative hidden lg:block">
-            <div className="rounded-2xl overflow-hidden shadow-2xl rotate-2 hover:rotate-0 transition-transform duration-500">
-              <img src={heroCommunity} alt="Community volunteers distributing supplies" className="w-full h-[480px] object-cover" width={1280} height={720} />
-            </div>
             <div className="absolute -bottom-6 -left-6 bg-card rounded-xl p-4 shadow-lg animate-slide-in">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-urgency-critical/15 flex items-center justify-center">
-                  <Zap className="h-5 w-5 text-urgency-critical" />
+                <div className="h-10 w-10 rounded-full bg-destructive/15 flex items-center justify-center">
+                  <Zap className="h-5 w-5 text-destructive" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-foreground">3 Critical Tasks</p>
@@ -117,7 +128,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Solutions */}
+      {/* Solutions - now 4 cards */}
       <section className="py-20 bg-muted/50">
         <div className="container">
           <div className="text-center mb-12">
@@ -126,14 +137,14 @@ const Index = () => {
               Helping Others Improves the World
             </h2>
           </div>
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {solutions.map((s, i) => (
               <div key={i} className="group rounded-xl overflow-hidden bg-card shadow-[var(--card-shadow)] hover:shadow-[var(--card-shadow-hover)] transition-all duration-300">
                 <div className="aspect-[4/3] overflow-hidden">
-                  <img src={s.image} alt={s.title} loading="lazy" width={640} height={640} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <img src={s.image} alt={s.title} loading="lazy" width={640} height={480} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
-                <div className="p-6">
-                  <h3 className="font-heading text-lg font-semibold text-foreground mb-2">{s.title}</h3>
+                <div className="p-5">
+                  <h3 className="font-heading text-base font-semibold text-foreground mb-1">{s.title}</h3>
                   <p className="text-sm text-muted-foreground">{s.description}</p>
                 </div>
               </div>
@@ -142,18 +153,48 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 bg-primary text-primary-foreground">
-        <div className="container text-center max-w-2xl">
-          <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4">
+      {/* Stories / Testimonials - NEW section with images */}
+      <section className="py-20">
+        <div className="container">
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold text-secondary uppercase tracking-wider mb-2">Real Stories</p>
+            <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground">
+              Voices from the Field
+            </h2>
+          </div>
+          <div className="grid gap-8 md:grid-cols-3">
+            {stories.map((s, i) => (
+              <div key={i} className="rounded-xl overflow-hidden border bg-card">
+                <div className="aspect-video overflow-hidden">
+                  <img src={s.image} alt={s.title} loading="lazy" width={640} height={360} className="w-full h-full object-cover" />
+                </div>
+                <div className="p-6">
+                  <div className="text-xs font-medium text-secondary uppercase tracking-wider mb-2">{s.location}</div>
+                  <h3 className="font-heading text-lg font-semibold text-foreground mb-3">{s.title}</h3>
+                  <p className="text-sm text-muted-foreground italic">"{s.quote}"</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA - image background instead of solid green */}
+      <section className="relative py-24">
+        <div className="absolute inset-0">
+          <img src={communityCenter} alt="" loading="lazy" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-foreground/80" />
+        </div>
+        <div className="container relative z-10 text-center max-w-2xl">
+          <h2 className="font-heading text-3xl md:text-4xl font-bold mb-4 text-background">
             Ready to Make a Difference?
           </h2>
-          <p className="text-primary-foreground/80 mb-8">
+          <p className="text-background/80 mb-8">
             Join thousands of volunteers and coordinators using ReliefSync to deliver hope where it's needed most.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link to="/register"><Button variant="hero" size="xl">Join as Volunteer</Button></Link>
-            <Link to="/feed"><Button variant="hero-outline" size="xl">Explore Tasks</Button></Link>
+            <Link to="/register"><Button variant="hero-outline" size="xl">Explore Tasks</Button></Link>
           </div>
         </div>
       </section>

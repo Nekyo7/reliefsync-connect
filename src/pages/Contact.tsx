@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import foodDistribution from "@/assets/food-distribution.jpg";
 
 const Contact = () => {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
@@ -18,10 +19,14 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <section className="bg-primary text-primary-foreground py-16">
-        <div className="container text-center">
-          <h1 className="font-heading text-4xl font-bold mb-2">Contact Us</h1>
-          <p className="text-primary-foreground/80">Get in touch with the ReliefSync team</p>
+      <section className="relative py-16">
+        <div className="absolute inset-0">
+          <img src={foodDistribution} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-foreground/75" />
+        </div>
+        <div className="container relative z-10 text-center">
+          <h1 className="font-heading text-4xl font-bold mb-2 text-background">Contact Us</h1>
+          <p className="text-background/80">Get in touch with the ReliefSync team</p>
         </div>
       </section>
 
