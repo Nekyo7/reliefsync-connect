@@ -3,11 +3,16 @@ import { useTaskStore } from "@/store/useTaskStore";
 import { TaskCard } from "@/components/TaskCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Filter, SlidersHorizontal } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import type { ReliefTask } from "@/types";
 
 const PriorityFeed = () => {
-  const { filteredTasks, filters, setFilter, setSearch, initializeMockData } = useTaskStore();
+  const filteredTasks = useTaskStore((state) => state.filteredTasks);
+  const filters = useTaskStore((state) => state.filters);
+  const isLoading = useTaskStore((state) => state.isLoading);
+  const setFilter = useTaskStore((state) => state.setFilter);
+  const setSearch = useTaskStore((state) => state.setSearch);
+  const initializeMockData = useTaskStore((state) => state.initializeMockData);
   const [selectedTask, setSelectedTask] = useState<ReliefTask | null>(null);
 
   useEffect(() => { initializeMockData(); }, [initializeMockData]);
@@ -70,7 +75,9 @@ const PriorityFeed = () => {
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-4">{filteredTasks.length} tasks found</p>
+        <p className="text-sm text-muted-foreground mb-4">
+          {isLoading ? "Refreshing live tasks from Google Sheets..." : `${filteredTasks.length} tasks found`}
+        </p>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTasks.map((task) => (
@@ -78,7 +85,7 @@ const PriorityFeed = () => {
           ))}
         </div>
 
-        {filteredTasks.length === 0 && (
+        {!isLoading && filteredTasks.length === 0 && (
           <div className="text-center py-16">
             <Filter className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <p className="text-muted-foreground">No tasks match your filters</p>
@@ -95,9 +102,13 @@ const PriorityFeed = () => {
             <div className="space-y-2 text-sm">
               <p><strong>Location:</strong> {selectedTask.location}</p>
               <p><strong>Category:</strong> {selectedTask.category}</p>
-              <p><strong>Skills:</strong> {selectedTask.required_skills.join(', ')}</p>
-              <p><strong>Priority Score:</strong> {selectedTask.priority_score}</p>
+              <p><strong>Skills:</strong> {selectedTask.required_skills.length ? selectedTask.required_skills.join(', ') : 'General support'}</p>
+              <p><strong>Priority Score:</strong> {selectedTask.priority_score.toFixed(2)}</p>
+              <p><strong>Status:</strong> {selectedTask.status.replace('_', ' ')}</p>
+              <p><strong>Urgency:</strong> {selectedTask.urgency_level}</p>
+              <p><strong>Verification:</strong> {selectedTask.verification_status}</p>
               <p><strong>Source:</strong> {selectedTask.source_type}</p>
+              <p><strong>Submitted:</strong> {new Date(selectedTask.timestamp).toLocaleString()}</p>
             </div>
             <div className="flex gap-2 mt-6">
               <Button variant="default" className="flex-1">Accept Task</Button>
