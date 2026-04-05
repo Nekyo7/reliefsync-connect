@@ -14,9 +14,17 @@ const Dashboard = () => {
   const initializeMockData = useTaskStore((state) => state.initializeMockData);
   const loadCSVData = useTaskStore((state) => state.loadCSVData);
   
-  // STEP 1: ROLE STATE
-  const [role, setRole] = useState("volunteer");
-  const [activeVolunteerId, setActiveVolunteerId] = useState<string | null>(null);
+  // STEP 1: CREATE USER STATE (TOP LEVEL)
+  const [user, setUser] = useState({
+    name: "Anish",
+    role: "volunteer", // "ngo" | "volunteer" | "coordinator"
+    location: "Whitefield",
+    skills: ["General Help", "Logistics"],
+    email: "anish@email.com"
+  });
+
+  // STEP 2: REPLACE ROLE STATE (IMPORTANT)
+  const role = user.role;
 
   useEffect(() => {
     initializeMockData();
@@ -28,9 +36,6 @@ const Dashboard = () => {
     return () => window.clearInterval(intervalId);
   }, [initializeMockData, loadCSVData]);
 
-  // Derived logic for Volunteer Dashboard
-  const selectedVolunteer = volunteers.find((volunteer) => volunteer.id === activeVolunteerId) ?? null;
-  const recommendedTasks = selectedVolunteer ? matchVolunteer(selectedVolunteer) : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,8 +54,10 @@ const Dashboard = () => {
             <label className="text-sm font-semibold text-foreground">Active Role View:</label>
             <select
               className="min-w-[200px] rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring font-medium"
-              onChange={(e) => setRole(e.target.value)}
-              value={role}
+              value={user.role}
+              onChange={(e) =>
+                setUser({ ...user, role: e.target.value })
+              }
             >
               <option value="ngo">NGO Dashboard</option>
               <option value="volunteer">Volunteer Portal</option>
@@ -62,15 +69,13 @@ const Dashboard = () => {
         {/* STEP 4: ROLE-BASED RENDERING */}
         
         {role === "ngo" && (
-          <NGODashboard stats={stats} tasks={tasks} userEmail="ngo@email.com" />
+          <NGODashboard stats={stats} tasks={tasks} userEmail={user.email} />
         )}
 
         {role === "volunteer" && (
           <VolunteerDashboard 
-            volunteers={volunteers}
-            activeVolunteerId={activeVolunteerId}
-            setActiveVolunteerId={setActiveVolunteerId}
-            recommendedTasks={recommendedTasks}
+            volunteer={user} // 🔥 use real user instead of selectedVolunteer
+            matchedTasks={matchVolunteer(user as any)}
             onAcceptTask={(taskId) => updateTaskStatus(taskId, 'ASSIGNED')}
           />
         )}
@@ -78,6 +83,15 @@ const Dashboard = () => {
         {role === "coordinator" && (
           <CoordinatorDashboard stats={stats} tasks={tasks} />
         )}
+
+        {/* STEP 6: SIMPLE PROFILE DISPLAY */}
+        <div style={{ marginBottom: "20px", marginTop: "20px", padding: "20px", border: "1px solid var(--border)", borderRadius: "8px", backgroundColor: "var(--card)" }}>
+          <h3 className="font-heading font-semibold text-lg mb-2">Current User</h3>
+          <p className="text-sm text-muted-foreground"><strong>Name:</strong> {user.name}</p>
+          <p className="text-sm text-muted-foreground"><strong>Role:</strong> {user.role}</p>
+          <p className="text-sm text-muted-foreground"><strong>Location:</strong> {user.location}</p>
+          <p className="text-sm text-muted-foreground"><strong>Skills:</strong> {user.skills.join(", ")}</p>
+        </div>
         
       </div>
     </div>

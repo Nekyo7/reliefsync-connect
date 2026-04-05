@@ -2,22 +2,17 @@ import { MapPin, Star } from "lucide-react";
 import type { ReliefTask, Volunteer } from "@/types";
 
 interface VolunteerDashboardProps {
-  volunteers: Volunteer[];
-  activeVolunteerId: string | null;
-  setActiveVolunteerId: (id: string | null) => void;
-  recommendedTasks: ReliefTask[];
+  volunteer: any;
+  matchedTasks: ReliefTask[];
   onAcceptTask: (taskId: string) => void;
 }
 
 export default function VolunteerDashboard({ 
-  volunteers, 
-  activeVolunteerId, 
-  setActiveVolunteerId, 
-  recommendedTasks, 
+  volunteer, 
+  matchedTasks, 
   onAcceptTask 
 }: VolunteerDashboardProps) {
-  
-  const activeVolunteer = volunteers.find((v) => v.id === activeVolunteerId) || null;
+
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-xl border border-primary/20 bg-card p-6 md:p-8 shadow-[var(--card-shadow)]">
@@ -25,42 +20,26 @@ export default function VolunteerDashboard({
         <div>
           <h2 className="flex items-center gap-2 font-heading text-2xl font-semibold"><Star className="h-6 w-6 text-primary" /> Volunteer Portal</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {activeVolunteer
-              ? `Recommended OPEN tasks for ${activeVolunteer.name} (same location + overlapping skills, top 3 by priority).`
-              : "Choose a volunteer from your volunteer sheet to see ranked task matches."}
+            Recommended OPEN tasks for {volunteer.name} (same location + overlapping skills, top 3 by priority).
           </p>
         </div>
         
-        {volunteers.length > 0 ? (
-          <select
-            className="w-full sm:w-auto max-w-[250px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            value={activeVolunteerId ?? ""}
-            onChange={(event) => {
-              const value = event.target.value;
-              setActiveVolunteerId(value === "" ? null : value);
-            }}
-          >
-            <option value="">Select volunteer</option>
-            {volunteers.map((volunteer) => (
-              <option key={volunteer.id} value={volunteer.id}>{volunteer.name}</option>
-            ))}
-          </select>
-        ) : null}
+        {/* STEP 5: REMOVE OLD VOLUNTEER SELECTOR */}
+        {/* User dropdown has been removed here */}
       </div>
 
-      {activeVolunteer && (
-        <div className="mb-8 rounded-lg bg-secondary/10 p-5 border border-secondary/20">
-          <h3 className="mb-3 font-heading font-semibold text-lg">Profile Summary</h3>
-          <div className="grid gap-2 text-sm text-muted-foreground">
-            <p><strong className="text-foreground">Name:</strong> {activeVolunteer.name}</p>
-            <p><strong className="text-foreground">Location:</strong> {activeVolunteer.location}</p>
-            <p><strong className="text-foreground">Skills:</strong> {activeVolunteer.skills?.join(", ") || "None listed"}</p>
-          </div>
+      <div className="mb-8 rounded-lg bg-secondary/10 p-5 border border-secondary/20">
+        <h3 className="mb-3 font-heading font-semibold text-lg">Profile Summary</h3>
+        <div className="grid gap-2 text-sm text-muted-foreground">
+          <p><strong className="text-foreground">Name:</strong> {volunteer.name}</p>
+          <p><strong className="text-foreground">Role:</strong> {volunteer.role}</p>
+          <p><strong className="text-foreground">Location:</strong> {volunteer.location}</p>
+          <p><strong className="text-foreground">Skills:</strong> {volunteer.skills?.join(", ") || "None listed"}</p>
         </div>
-      )}
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {recommendedTasks.length > 0 ? recommendedTasks.map((task) => (
+        {matchedTasks.length > 0 ? matchedTasks.map((task) => (
           <div key={task.id} className="flex flex-col items-start gap-4 rounded-lg border bg-background p-5 transition-all hover:border-primary/50 hover:shadow-md">
             <div className="w-full flex-1">
               <div className="flex items-start justify-between gap-2 overflow-hidden">
@@ -89,9 +68,7 @@ export default function VolunteerDashboard({
           </div>
         )) : (
           <div className="col-span-full rounded-lg border border-dashed py-12 text-center text-muted-foreground">
-            {activeVolunteer
-              ? "No OPEN tasks match this volunteer's location and skills currently."
-              : "Select a volunteer to magically see recommendations."}
+            No OPEN tasks match your location and skills currently.
           </div>
         )}
       </div>
