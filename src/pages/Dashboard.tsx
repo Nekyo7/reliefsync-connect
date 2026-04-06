@@ -3,17 +3,12 @@ import { useTaskStore } from "@/store/useTaskStore";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { AlertTriangle, CheckCircle, Clock, Users, MapPin, Star, Briefcase } from "lucide-react";
 
-const DEMO_VOLUNTEER = {
-  id: "demo-volunteer",
-  name: "Field Volunteer",
-  location: "Whitefield",
-  skills: ["Logistics", "Medical", "Community Outreach"],
-  availability: "ON_CALL",
-};
-
 const Dashboard = () => {
   const stats = useTaskStore((state) => state.stats);
   const tasks = useTaskStore((state) => state.tasks);
+  const volunteers = useTaskStore((state) => state.volunteers);
+  const isLoading = useTaskStore((state) => state.isLoading);
+  const error = useTaskStore((state) => state.error);
   const matchVolunteer = useTaskStore((state) => state.matchVolunteer);
   const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
   const loadCSVData = useTaskStore((state) => state.loadCSVData);
@@ -52,14 +47,21 @@ const Dashboard = () => {
     return accumulator;
   }, [] as { name: string; count: number }[]);
 
-  const recommendedTasks = matchVolunteer(DEMO_VOLUNTEER as any);
   const highPriorityTasks = tasks.filter((task) => task.status === 'OPEN' && (task.urgency_level === 'CRITICAL' || task.urgency_level === 'HIGH')).slice(0, 5);
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container py-8">
         <h1 className="mb-2 font-heading text-3xl font-bold text-foreground">Relief Command Center</h1>
-        <p className="mb-8 text-muted-foreground">Live Google Sheets and n8n pipeline overview</p>
+        <p className="mb-8 text-muted-foreground">
+          Live Google Sheets and n8n pipeline overview
+          {isLoading ? <span className="ml-2 text-xs text-primary">(refreshing…)</span> : null}
+        </p>
+        {error ? (
+          <div className="mb-6 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+            {error}
+          </div>
+        ) : null}
 
         <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
           {statCards.map((statCard, index) => (
@@ -131,41 +133,77 @@ const Dashboard = () => {
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-xl border border-primary/20 bg-card p-6 shadow-[var(--card-shadow)]">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="flex items-center gap-2 font-heading text-lg font-semibold"><Star className="h-5 w-5 text-primary" /> Volunteer Matching</h3>
+              <h3 className="flex items-center gap-2 font-heading text-lg font-semibold"><Star className="h-5 w-5 text-primary" /> Volunteer Matching Engine</h3>
             </div>
-            <p className="mb-4 text-sm text-muted-foreground">Top matched tasks for the current volunteer dataset</p>
+            <p className="mb-4 text-sm text-muted-foreground">For each volunteer: compute weighted score and show top 3 tasks.</p>
 
             <div className="max-h-[400px] space-y-4 overflow-y-auto pr-2">
-              {recommendedTasks.length > 0 ? recommendedTasks.map((task) => (
-                <div key={task.id} className="flex flex-col items-start gap-4 rounded-lg border bg-background p-4 transition-colors hover:border-primary/50">
-                  <div className="w-full flex-1">
-                    <div className="flex items-start justify-between">
-                      <h4 className="font-heading font-semibold text-foreground">{task.title}</h4>
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${task.urgency_level === 'CRITICAL' ? 'bg-urgency-critical/10 text-urgency-critical' : task.urgency_level === 'HIGH' ? 'bg-urgency-high/10 text-urgency-high' : 'bg-primary/10 text-primary'}`}>
-                        {task.priority_score.toFixed(1)} PRIORITY
+              {volunteers.length > 0 ? volunteers.map((volunteer) => {
+                const matches = matchVolunteer(volunteer as any);
+                return (
+                  <div key={volunteer.id} className="rounded-lg border bg-background p-4">
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-heading font-semibold text-foreground">{volunteer.name}</div>
+                        <div className="mt-1 text-sm text-muted-foreground">
+                          <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {volunteer.location}</span>
+                          <span className="ml-2 text-xs">Availability: {volunteer.availability.replace("_", " ")}</span>
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-primary/10 px-2 py-1 text-[10px] font-bold text-primary">
+                        Top {Math.min(3, matches.length)}
                       </span>
                     </div>
-                    <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin className="h-3 w-3" /> {task.location}
-                    </div>
-                    {task.required_skills.length > 0 ? (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {task.required_skills.slice(0, 3).map((skill, index) => (
-                          <span key={`${skill}-${index}`} className="rounded-md bg-secondary/20 px-2 py-0.5 text-xs text-secondary-foreground">{skill}</span>
+
+                    {matches.length > 0 ? (
+                      <div className="space-y-3">
+                        {matches.map((task) => (
+                          <div key={task.id} className="flex flex-col gap-3 rounded-md border p-3">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="truncate font-heading font-semibold text-foreground">{task.title}</div>
+                                <div className="mt-1 text-sm text-muted-foreground">
+                                  <MapPin className="mr-1 inline h-3 w-3" />
+                                  {task.location}
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-end gap-1">
+                                <span className="rounded-full bg-secondary/20 px-2 py-1 text-[10px] font-bold text-secondary-foreground">
+                                  Score: {task.match_score.toFixed(2)}
+                                </span>
+                                <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${task.urgency_level === 'CRITICAL' ? 'bg-urgency-critical/10 text-urgency-critical' : task.urgency_level === 'HIGH' ? 'bg-urgency-high/10 text-urgency-high' : 'bg-primary/10 text-primary'}`}>
+                                  Priority: {Number.isFinite(task.priority_score) ? task.priority_score.toFixed(2) : "—"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {task.required_skills.length > 0 ? (
+                              <div className="flex flex-wrap gap-2">
+                                {task.required_skills.slice(0, 4).map((skill, index) => (
+                                  <span key={`${task.id}-${skill}-${index}`} className="rounded-md bg-muted px-2 py-0.5 text-xs text-muted-foreground">{skill}</span>
+                                ))}
+                              </div>
+                            ) : null}
+
+                            <button
+                              onClick={() => updateTaskStatus(task.id, 'ASSIGNED', volunteer.id)}
+                              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                            >
+                              Assign to {volunteer.name}
+                            </button>
+                          </div>
                         ))}
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="rounded-md border border-dashed py-6 text-center text-sm text-muted-foreground">
+                        No OPEN tasks scored high enough yet (skills/location).
+                      </div>
+                    )}
                   </div>
-                  <button
-                    onClick={() => updateTaskStatus(task.id, 'ASSIGNED')}
-                    className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-                  >
-                    Accept Task
-                  </button>
-                </div>
-              )) : (
+                );
+              }) : (
                 <div className="rounded-lg border border-dashed py-8 text-center text-muted-foreground">
-                  No matched tasks yet for the available volunteer rows.
+                  No volunteer rows found in the volunteer sheet yet.
                 </div>
               )}
             </div>

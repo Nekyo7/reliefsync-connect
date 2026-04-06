@@ -57,17 +57,28 @@ const Index = () => {
             <p className="text-lg text-background/80 max-w-lg">
               ReliefSync transforms scattered community needs into prioritized, actionable tasks — connecting volunteers with the people who need them most.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <Link to="/feed">
                 <Button variant="hero" size="xl">
                   View Live Feed <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
-              <Link to="/register">
-                <Button variant="hero-outline" size="xl">
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  variant="hero"
+                  size="xl"
+                  onClick={() => window.open("https://forms.gle/cyKNuAT1xawVAbVT8", "_blank")}
+                >
                   Become a Volunteer
                 </Button>
-              </Link>
+                <Button
+                  variant="hero-outline"
+                  size="xl"
+                  onClick={() => window.open("https://forms.gle/LA7jSWb4jtDwP9iz8", "_blank")}
+                >
+                  Register NGO / Post a Need
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -163,9 +174,21 @@ const Index = () => {
           <p className="text-background/80 mb-8">
             Join thousands of volunteers and coordinators using ReliefSync to deliver hope where it's needed most.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link to="/register"><Button variant="hero" size="xl">Join as Volunteer</Button></Link>
-            <Link to="/register"><Button variant="hero-outline" size="xl">Explore Tasks</Button></Link>
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Button
+              variant="hero"
+              size="xl"
+              onClick={() => window.open("https://forms.gle/cyKNuAT1xawVAbVT8", "_blank")}
+            >
+              Become a Volunteer
+            </Button>
+            <Button
+              variant="hero-outline"
+              size="xl"
+              onClick={() => window.open("https://forms.gle/LA7jSWb4jtDwP9iz8", "_blank")}
+            >
+              Register NGO / Post a Need
+            </Button>
           </div>
         </div>
       </section>

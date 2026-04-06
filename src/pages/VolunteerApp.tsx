@@ -1,38 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTaskStore } from "@/store/useTaskStore";
 import { TaskMap } from "@/components/TaskMap";
-import type { ReliefTask } from "@/types";
 import { ArrowRight, CheckCircle2, HeartHandshake, MapPin, Sparkles, Target, Trophy } from "lucide-react";
-
-const VOLUNTEER_PROFILES = [
-  {
-    id: "volunteer-whitefield",
-    name: "Aarav",
-    email: "aarav@reliefsync.demo",
-    location: "Whitefield",
-    skills: ["Logistics", "First Aid", "Community Outreach"],
-    availability: "ON_CALL",
-  },
-  {
-    id: "volunteer-indiranagar",
-    name: "Meera",
-    email: "meera@reliefsync.demo",
-    location: "Indiranagar",
-    skills: ["Teaching", "Food Distribution", "Coordination"],
-    availability: "PART_TIME",
-  },
-  {
-    id: "volunteer-electronic-city",
-    name: "Rahul",
-    email: "rahul@reliefsync.demo",
-    location: "Electronic City",
-    skills: ["Transport", "Heavy Lifting", "Medical"],
-    availability: "WEEKENDS",
-  },
-] as const;
 
 const VolunteerApp = () => {
   const tasks = useTaskStore((state) => state.tasks);
+  const volunteers = useTaskStore((state) => state.volunteers);
+  const matchVolunteer = useTaskStore((state) => state.matchVolunteer);
+  const isLoading = useTaskStore((state) => state.isLoading);
+  const error = useTaskStore((state) => state.error);
   const loadCSVData = useTaskStore((state) => state.loadCSVData);
   const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
 
@@ -49,19 +25,14 @@ const VolunteerApp = () => {
   }, [loadCSVData]);
 
   useEffect(() => {
-    if (!selectedVolunteerId) {
-      setSelectedVolunteerId(VOLUNTEER_PROFILES[0].id);
+    if (!selectedVolunteerId && volunteers.length > 0) {
+      setSelectedVolunteerId(volunteers[0].id);
     }
-  }, [selectedVolunteerId]);
+  }, [selectedVolunteerId, volunteers]);
 
   const volunteer = useMemo(
-    () => VOLUNTEER_PROFILES.find((item) => item.id === selectedVolunteerId) || VOLUNTEER_PROFILES[0],
-    [selectedVolunteerId]
-  );
-
-  const volunteerSkills = useMemo(
-    () => volunteer?.skills.map((skill) => skill.trim().toLowerCase()) || [],
-    [volunteer]
+    () => volunteers.find((item) => item.id === selectedVolunteerId) || volunteers[0] || null,
+    [selectedVolunteerId, volunteers]
   );
 
   const sameLocationTasks = useMemo(
@@ -74,22 +45,10 @@ const VolunteerApp = () => {
     [tasks, volunteer]
   );
 
-  const matchedTasks = useMemo(() => {
-    if (!volunteer) {
-      return [];
-    }
-
-    return tasks
-      .filter((task) => task.status === "OPEN")
-      .map((task) => {
-        const sameLocation = task.location.trim().toLowerCase() === volunteer.location.trim().toLowerCase();
-        const skillMatches = task.required_skills.filter((skill) => volunteerSkills.includes(skill.trim().toLowerCase())).length;
-        const score = task.priority_score + (sameLocation ? 25 : 0) + skillMatches * 12;
-        return { task, score, sameLocation, skillMatches };
-      })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
-  }, [tasks, volunteer, volunteerSkills]);
+  const matchedTasks = useMemo(
+    () => (volunteer ? matchVolunteer(volunteer) : []),
+    [matchVolunteer, volunteer]
+  );
 
   const activeTask = useMemo(
     () => (volunteer ? tasks.find((task) => task.assigned_to === volunteer.id && task.status !== "COMPLETED") || null : null),
@@ -111,9 +70,29 @@ const VolunteerApp = () => {
   }, [completedTasks]);
 
   const nearYouTasks = sameLocationTasks.slice(0, 4);
-  const mapTasks = [...matchedTasks.map((item) => item.task), ...nearYouTasks].filter(
+  const mapTasks = [...matchedTasks, ...nearYouTasks].filter(
     (task, index, array) => array.findIndex((other) => other.id === task.id) === index
   );
+
+  if (!volunteer) {
+    return (
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(234,179,8,0.12),_transparent_30%),linear-gradient(180deg,_hsl(var(--background)),_hsl(var(--muted)/0.35))]">
+        <div className="container py-16">
+          <div className="rounded-[2rem] border bg-card p-8 text-center shadow-[var(--card-shadow)]">
+            <div className="font-heading text-2xl font-semibold text-foreground">Volunteer portal</div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {isLoading ? "Loading volunteers…" : volunteers.length === 0 ? "No volunteers found in the volunteer sheet yet." : "Select a volunteer to continue."}
+            </p>
+            {error ? (
+              <div className="mx-auto mt-5 max-w-xl rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(234,179,8,0.12),_transparent_30%),linear-gradient(180deg,_hsl(var(--background)),_hsl(var(--muted)/0.35))]">
@@ -123,7 +102,8 @@ const VolunteerApp = () => {
             <div className="space-y-6">
               <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
                 <Sparkles className="h-4 w-4" />
-                {matchedTasks.length} urgent tasks selected for you
+                {matchedTasks.length} recommended tasks selected for you
+                {isLoading ? <span className="text-xs text-primary">(refreshing…)</span> : null}
               </div>
               <div>
                 <h1 className="font-heading text-4xl font-bold tracking-tight text-foreground md:text-5xl">
@@ -167,10 +147,11 @@ const VolunteerApp = () => {
                 </div>
                 <select
                   className="rounded-lg border bg-card px-3 py-2 text-sm"
-                  value={volunteer.id}
+                  value={volunteer?.id || ""}
                   onChange={(event) => setSelectedVolunteerId(event.target.value)}
+                  disabled={volunteers.length === 0}
                 >
-                  {VOLUNTEER_PROFILES.map((item) => (
+                  {volunteers.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name}
                     </option>
@@ -194,6 +175,11 @@ const VolunteerApp = () => {
                     <span className="text-xs">No skills added yet.</span>
                   )}
                 </div>
+                {error ? (
+                  <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+                    {error}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -209,7 +195,7 @@ const VolunteerApp = () => {
             </div>
 
             <div className="grid gap-4">
-              {matchedTasks.length > 0 ? matchedTasks.map(({ task, sameLocation, skillMatches }) => (
+              {matchedTasks.length > 0 ? matchedTasks.map((task) => (
                 <div key={task.id} className="rounded-2xl border bg-background p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -220,17 +206,14 @@ const VolunteerApp = () => {
                       <p className="mt-2 text-sm text-muted-foreground">{task.description || "No description provided yet."}</p>
                     </div>
                     <div className="rounded-2xl bg-secondary/15 px-4 py-3 text-right">
-                      <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Match</div>
-                      <div className="mt-1 text-2xl font-bold text-foreground">{task.priority_score.toFixed(1)}</div>
+                      <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Score</div>
+                      <div className="mt-1 text-2xl font-bold text-foreground">{task.match_score.toFixed(2)}</div>
                     </div>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2 text-xs">
                     <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
-                      {sameLocation ? "In your area" : task.location}
-                    </span>
-                    <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
-                      {skillMatches} skill {skillMatches === 1 ? "match" : "matches"}
+                      {task.location}
                     </span>
                     <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
                       {task.source_type}
