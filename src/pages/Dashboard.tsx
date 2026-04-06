@@ -31,7 +31,7 @@ const Dashboard = () => {
 
     const intervalId = window.setInterval(() => {
       void loadCSVData();
-    }, 30000);
+    }, 15000);
 
     return () => window.clearInterval(intervalId);
   }, [initializeMockData, loadCSVData]);

@@ -156,18 +156,18 @@ const formatTasks = (rows: Record<string, string>[]): ReliefTask[] => {
       description: obj.description || '',
       location: obj.location || 'Unknown',
       category: obj.category || 'General',
-      lat: obj.lat ? Number.parseFloat(obj.lat) : obj.latitude ? Number.parseFloat(obj.latitude) : undefined,
-      lng: obj.lng ? Number.parseFloat(obj.lng) : obj.longitude ? Number.parseFloat(obj.longitude) : undefined,
-      required_skills: normalizeList(obj.skills || obj.required_skills),
-      source_type: normalizeSource(obj.source_type),
+      lat: obj.lat ? Number.parseFloat(obj.lat) : undefined,
+      lng: obj.lng ? Number.parseFloat(obj.lng) : undefined,
+      required_skills: normalizeList(obj.skills),
+      source_type: obj.ngo_name ? 'NGO' : 'PUBLIC',
       verification_status: obj.verified === 'true' || obj.verified === 'TRUE' ? 'VERIFIED' : 'UNVERIFIED',
-      priority_score: Number.parseFloat(obj.priority_score || '0') || 0,
-      urgency_level: normalizeUrgency(obj.priority_label || obj.urgency_level) ?? 'LOW',
+      priority_score: Number.parseFloat(obj.priority_score) || 0,
+      urgency_level: normalizeUrgency(obj.priority_label) ?? 'LOW',
       status: normalizeStatus(obj.status),
-      timestamp: obj.timestamp || new Date().toISOString(),
+      timestamp: obj.timestamp || obj.date || new Date().toISOString(),
       submitted_by: obj.email || 'ngo@email.com',
       assigned_to: obj.assigned_to || undefined,
-    } as ReliefTask & { people: number };
+    } as ReliefTask;
   }).sort((a, b) => b.priority_score - a.priority_score);
 
   console.log('[Final Structured Tasks]:', formatted);

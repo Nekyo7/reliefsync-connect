@@ -93,7 +93,14 @@ export default function NGODashboard({ stats, tasks, userEmail }: NGODashboardPr
               <h4 className="font-heading font-semibold text-foreground line-clamp-1">{task.title}</h4>
               <div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {task.location}</span>
-                <span>Volunteers Needed: {(task as any).people || "0"}</span>
+                <span className="flex items-center gap-2 mt-1">
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${task.urgency_level === 'CRITICAL' || task.urgency_level === 'HIGH' ? 'bg-red-100 text-red-700' : task.urgency_level === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                    Priority: {task.urgency_level}
+                  </span>
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
+                    Verified: {task.verification_status === 'VERIFIED' ? "Yes" : "No"}
+                  </span>
+                </span>
                 <span className="mt-2 text-xs font-semibold">
                   Status: {task.status !== 'OPEN' ? <span className="text-primary tracking-wide">Assigned</span> : "Unassigned"}
                 </span>
