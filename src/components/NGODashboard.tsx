@@ -117,12 +117,7 @@ export default function NGODashboard({ stats, tasks, userEmail }: NGODashboardPr
               </div>
               <div className="mt-2 flex flex-col gap-2 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {task.location}</span>
-<<<<<<< HEAD
                 <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(task.timestamp).toLocaleDateString()}</span>
-                <span className="mt-2 text-xs font-semibold flex items-center justify-between">
-                  <span>Status: {task.status !== 'OPEN' ? <span className="text-primary tracking-wide">Assigned</span> : "Unassigned"}</span>
-                  <span className="text-[10px] underline underline-offset-2">View details</span>
-=======
                 <span className="flex items-center gap-2 mt-1">
                   <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${task.urgency_level === 'CRITICAL' || task.urgency_level === 'HIGH' ? 'bg-red-100 text-red-700' : task.urgency_level === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
                     Priority: {task.urgency_level}
@@ -131,9 +126,9 @@ export default function NGODashboard({ stats, tasks, userEmail }: NGODashboardPr
                     Verified: {task.verification_status === 'VERIFIED' ? "Yes" : "No"}
                   </span>
                 </span>
-                <span className="mt-2 text-xs font-semibold">
-                  Status: {task.status !== 'OPEN' ? <span className="text-primary tracking-wide">Assigned</span> : "Unassigned"}
->>>>>>> d92358570aa9576e26cbd508d9d0358f4f2cfdd4
+                <span className="mt-2 text-xs font-semibold flex items-center justify-between">
+                  <span>Status: {task.status !== 'OPEN' ? <span className="text-primary tracking-wide">Assigned</span> : "Unassigned"}</span>
+                  <span className="text-[10px] underline underline-offset-2">View details</span>
                 </span>
               </div>
             </div>

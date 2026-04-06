@@ -36,7 +36,6 @@ const formatTasks = (rows: any[]): ReliefTask[] => {
       category: obj.category || 'General',
       lat: obj.lat ? Number.parseFloat(obj.lat) : undefined,
       lng: obj.lng ? Number.parseFloat(obj.lng) : undefined,
-<<<<<<< HEAD
       required_skills: normalizeList(obj.required_skills),
       source_type: (obj.source_type?.toUpperCase() === 'PUBLIC' ? 'PUBLIC' : 'NGO') as 'PUBLIC'|'NGO',
       verification_status: obj.verification_status?.toUpperCase() === 'VERIFIED' ? 'VERIFIED' : 'UNVERIFIED',
@@ -45,16 +44,6 @@ const formatTasks = (rows: any[]): ReliefTask[] => {
       status: normalizeStatus(obj.status),
       timestamp: obj.timestamp || obj.created_at || new Date().toISOString(),
       submitted_by: obj.submitted_by || 'ngo@email.com',
-=======
-      required_skills: normalizeList(obj.skills),
-      source_type: obj.ngo_name ? 'NGO' : 'PUBLIC',
-      verification_status: obj.verified === 'true' || obj.verified === 'TRUE' ? 'VERIFIED' : 'UNVERIFIED',
-      priority_score: Number.parseFloat(obj.priority_score) || 0,
-      urgency_level: normalizeUrgency(obj.priority_label) ?? 'LOW',
-      status: normalizeStatus(obj.status),
-      timestamp: obj.timestamp || obj.date || new Date().toISOString(),
-      submitted_by: obj.email || 'ngo@email.com',
->>>>>>> d92358570aa9576e26cbd508d9d0358f4f2cfdd4
       assigned_to: obj.assigned_to || undefined,
     } as ReliefTask;
   }).sort((a, b) => b.priority_score - a.priority_score);
