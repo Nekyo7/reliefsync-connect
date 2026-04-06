@@ -2,10 +2,12 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Heart, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const { user, logout } = useAuthStore();
 
   const links = [
     { to: "/", label: "Home" },
@@ -42,9 +44,13 @@ export const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Link to="/login">
-            <Button variant="hero" size="sm">Log In</Button>
-          </Link>
+          {user ? (
+            <Button variant="ghost" size="sm" onClick={logout}>Log Out</Button>
+          ) : (
+            <Link to="/login">
+              <Button variant="hero" size="sm">Log In</Button>
+            </Link>
+          )}
         </div>
 
         <button className="md:hidden p-2" onClick={() => setMobileOpen(!mobileOpen)}>
@@ -65,7 +71,11 @@ export const Navbar = () => {
             </Link>
           ))}
           <div className="flex gap-2 pt-2">
-            <Link to="/login" className="flex-1"><Button variant="hero" size="sm" className="w-full">Log In</Button></Link>
+            {user ? (
+              <Button variant="ghost" size="sm" className="w-full" onClick={logout}>Log Out</Button>
+            ) : (
+              <Link to="/login" className="flex-1"><Button variant="hero" size="sm" className="w-full">Log In</Button></Link>
+            )}
           </div>
         </div>
       )}

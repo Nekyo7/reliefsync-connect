@@ -3,6 +3,7 @@ import { useTaskStore } from "@/store/useTaskStore";
 import NGODashboard from "@/components/NGODashboard";
 import VolunteerDashboard from "@/components/VolunteerDashboard";
 import CoordinatorDashboard from "@/components/CoordinatorDashboard";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const Dashboard = () => {
   const stats = useTaskStore((state) => state.stats);
@@ -14,17 +15,17 @@ const Dashboard = () => {
   const initializeMockData = useTaskStore((state) => state.initializeMockData);
   const loadCSVData = useTaskStore((state) => state.loadCSVData);
   
+  const { user: authUser, role, setRole } = useAuthStore();
+  
   // STEP 1: CREATE USER STATE (TOP LEVEL)
-  const [user, setUser] = useState({
-    name: "Anish",
-    role: "volunteer", // "ngo" | "volunteer" | "coordinator"
-    location: "Whitefield",
-    skills: ["General Help", "Logistics"],
-    email: "anish@email.com"
-  });
-
-  // STEP 2: REPLACE ROLE STATE (IMPORTANT)
-  const role = user.role;
+  const user = {
+    id: authUser?.id || "guest-1",
+    name: authUser?.user_metadata?.full_name || "Guest",
+    role: role || "volunteer",
+    location: authUser?.user_metadata?.location || "Whitefield",
+    skills: authUser?.user_metadata?.skills || ["General Help", "Logistics"],
+    email: authUser?.email || "guest@email.com"
+  };
 
   useEffect(() => {
     initializeMockData();
@@ -49,20 +50,11 @@ const Dashboard = () => {
             </p>
           </div>
           
-          {/* STEP 2: ROLE SELECTOR */}
+          {/* Role is strictly enforced by authentication state */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-foreground">Active Role View:</label>
-            <select
-              className="min-w-[200px] rounded-md border border-input bg-card px-3 py-2 text-sm shadow-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring font-medium"
-              value={user.role}
-              onChange={(e) =>
-                setUser({ ...user, role: e.target.value })
-              }
-            >
-              <option value="ngo">NGO Dashboard</option>
-              <option value="volunteer">Volunteer Portal</option>
-              <option value="coordinator">Coordinator Dashboard</option>
-            </select>
+            <div className="inline-flex items-center rounded-md border px-3 py-1 text-sm font-semibold shadow-sm bg-primary/10 text-primary uppercase tracking-wider">
+              {role} portal
+            </div>
           </div>
         </div>
 

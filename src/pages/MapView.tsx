@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useTaskStore } from "@/store/useTaskStore";
 import { UrgencyBadge } from "@/components/UrgencyBadge";
+import { getCoords } from "@/utils/mapUtils";
 
 const MapView = () => {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -26,9 +27,9 @@ const MapView = () => {
       };
 
       tasks.forEach((task) => {
-        if (!task.lat || !task.lng) return;
+        const [lat, lng] = getCoords(task);
         const color = urgencyColors[task.urgency_level] || '#666';
-        const marker = L.default.circleMarker([task.lat, task.lng], {
+        const marker = L.default.circleMarker([lat, lng], {
           radius: task.urgency_level === 'CRITICAL' ? 10 : 7,
           fillColor: color, color: color, weight: 2, opacity: 0.8, fillOpacity: 0.5,
         }).addTo(map);

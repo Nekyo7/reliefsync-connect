@@ -5,15 +5,32 @@ import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useNavigate } from "react-router-dom";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { checkSession } = useAuthStore();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: "Backend Required", description: "Enable Lovable Cloud for authentication." });
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await checkSession();
+      toast({ title: "Welcome Back!", description: "Successfully logged in." });
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({ title: "Login failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -43,7 +60,9 @@ const Login = () => {
             <div className="text-right">
               <Link to="/forgot-password" className="text-sm text-primary hover:underline">Forgot password?</Link>
             </div>
-            <Button type="submit" className="w-full" size="lg">Sign In</Button>
+            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              {isLoading ? "Signing In..." : "Sign In"}
+            </Button>
           </form>
 
           <div className="relative my-6">

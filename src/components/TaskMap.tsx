@@ -1,6 +1,7 @@
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import type { ReliefTask } from "@/types";
+import { getCoords } from "@/utils/mapUtils";
 
 // Fix Leaflet's default icon missing issue in Vite
 import L from "leaflet";
@@ -16,33 +17,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-const locationMap: Record<string, [number, number]> = {
-  "Whitefield": [12.9698, 77.75],
-  "Indiranagar": [12.9784, 77.6408],
-  "MG Road": [12.9756, 77.605],
-  "Electronic City": [12.8456, 77.6603],
-  "Bangalore": [12.9716, 77.5946],
-  "Koramangala": [12.9279, 77.6271],
-  "Jayanagar": [12.9299, 77.5826],
-  "Bengaluru": [12.9716, 77.5946],
-};
-
-const getCoords = (task: ReliefTask): [number, number] => {
-  if (task.lat !== undefined && task.lng !== undefined) {
-    if (Number.isFinite(task.lat) && Number.isFinite(task.lng)) {
-      return [task.lat, task.lng];
-    }
-  }
-  
-  for (const [key, coords] of Object.entries(locationMap)) {
-    if (task.location.toLowerCase().includes(key.toLowerCase())) {
-      return coords;
-    }
-  }
-
-  // Fallback to center
-  return [12.9716, 77.5946];
-};
 
 interface TaskMapProps {
   tasks: ReliefTask[];

@@ -1,197 +1,73 @@
 import { create } from 'zustand';
 import type { ReliefTask, DashboardStats, Volunteer } from '@/types';
+import { supabase } from '@/lib/supabase';
 import { mockTasks } from '@/data/mockData';
 
-const NGO_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTApZNaoVYT_W8C6H7ZBRlFQVa5Z_kW7dDfmFs13Xun8jXYT53MpGyVZ93-jg5Jqc4NXVCtqVXxX-kb/pub?output=csv";
-const VOL_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTApZNaoVYT_W8C6H7ZBRlFQVa5Z_kW7dDfmFs13Xun8jXYT53MpGyVZ93-jg5Jqc4NXVCtqVXxX-kb/pub?gid=820527332&single=true&output=csv";
-
-const normalizeCell = (value: string) => value.replace(/^\uFEFF/, '').trim();
-
-const isRowEmpty = (row: string[]) => row.every((cell) => normalizeCell(cell) === '');
-
-// Robust CSV parser that safely handles commas, escaped quotes, and quoted newlines.
-const parseCSV = (rawText: string): string[][] => {
-  const text = rawText.replace(/^\uFEFF/, '');
-  const rows: string[][] = [];
-  let currentRow: string[] = [];
-  let currentCell = '';
-  let inQuotes = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    const nextChar = text[index + 1];
-
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        currentCell += '"';
-        index += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-
-    if (char === ',' && !inQuotes) {
-      currentRow.push(normalizeCell(currentCell));
-      currentCell = '';
-      continue;
-    }
-
-    if ((char === '\n' || char === '\r') && !inQuotes) {
-      if (char === '\r' && nextChar === '\n') {
-        index += 1;
-      }
-
-      currentRow.push(normalizeCell(currentCell));
-      if (!isRowEmpty(currentRow)) {
-        rows.push(currentRow);
-      }
-      currentRow = [];
-      currentCell = '';
-      continue;
-    }
-
-    currentCell += char;
+const normalizeList = (value: any) => {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
   }
-
-  if (currentCell.length > 0 || currentRow.length > 0) {
-    currentRow.push(normalizeCell(currentCell));
-    if (!isRowEmpty(currentRow)) {
-      rows.push(currentRow);
-    }
-  }
-
-  return rows;
+  return [];
 };
-
-const mapRowsToObjects = (rows: string[][], label: string) => {
-  if (rows.length === 0) {
-    console.log(`[Parsed Rows - ${label}] No rows found after parsing.`);
-    return [];
-  }
-
-  const headers = rows[0].map((header) => normalizeCell(header).toLowerCase());
-  const dataRows = rows
-    .slice(1)
-    .map((row) => headers.map((_, index) => normalizeCell(row[index] ?? '')))
-    .filter((row) => !isRowEmpty(row));
-
-  const structuredRows = dataRows.map((row, rowIndex) =>
-    headers.reduce<Record<string, string>>((accumulator, header, headerIndex) => {
-      const fallbackKey = `column_${headerIndex}`;
-      accumulator[header || fallbackKey] = row[headerIndex] ?? '';
-      return accumulator;
-    }, { __rowIndex: String(rowIndex) })
-  );
-
-  console.log(`[Parsed Rows - ${label}]`, rows);
-  console.log(`[Final Structured Data - ${label}]`, structuredRows);
-
-  return structuredRows;
-};
-
-const normalizeList = (value?: string) =>
-  value
-    ? value
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean)
-    : [];
 
 const normalizeStatus = (value?: string): ReliefTask['status'] => {
   const normalized = value?.trim().toUpperCase().replace(/\s+/g, "_");
-  if (normalized === 'ASSIGNED' || normalized === 'IN_PROGRESS' || normalized === 'COMPLETED') {
-    return normalized;
-  }
+  if (normalized === 'ASSIGNED' || normalized === 'IN_PROGRESS' || normalized === 'COMPLETED') return normalized;
   return 'OPEN';
-};
-
-const normalizeVerification = (value?: string): ReliefTask['verification_status'] => {
-  const normalized = value?.trim().toUpperCase();
-  return normalized === 'UNVERIFIED' ? 'UNVERIFIED' : 'VERIFIED';
-};
-
-const normalizeSource = (value?: string): ReliefTask['source_type'] => {
-  const normalized = value?.trim().toUpperCase();
-  return normalized === 'PUBLIC' ? 'PUBLIC' : 'NGO';
 };
 
 const normalizeUrgency = (value?: string): ReliefTask['urgency_level'] | null => {
   const normalized = value?.trim().toUpperCase();
-  if (normalized === 'LOW' || normalized === 'MEDIUM' || normalized === 'HIGH' || normalized === 'CRITICAL') {
-    return normalized;
-  }
+  if (normalized === 'LOW' || normalized === 'MEDIUM' || normalized === 'HIGH' || normalized === 'CRITICAL') return normalized;
   return null;
 };
 
-// Helper to fetch CSV with cache-busting
-const fetchCSV = async (url: string, label: string) => {
-  const finalUrl = new URL(url);
-  finalUrl.searchParams.set('_ts', Date.now().toString());
-
-  console.log(`[Fetch ${label}] URL`, finalUrl.toString());
-
-  const response = await fetch(finalUrl.toString(), {
-    cache: 'no-store',
-  });
-
-  if (!response.ok) {
-    throw new Error(`${label} CSV request failed with ${response.status}`);
-  }
-
-  const text = await response.text();
-  console.log(`[Raw CSV Text - ${label}]`, text);
-
-  return mapRowsToObjects(parseCSV(text), label);
-};
-
 // Format logic for Tasks
-const formatTasks = (rows: Record<string, string>[]): ReliefTask[] => {
-  if (!rows.length) return [];
+const formatTasks = (rows: any[]): ReliefTask[] => {
+  if (!rows?.length) return [];
 
   const formatted = rows.map((obj, i) => {
     return {
-      id: `task-${obj.timestamp || obj.title || 'row'}-${i}`,
+      id: obj.id || `task-${i}`,
       title: obj.title || 'Untitled Task',
       description: obj.description || '',
       location: obj.location || 'Unknown',
       category: obj.category || 'General',
-      lat: obj.lat ? Number.parseFloat(obj.lat) : obj.latitude ? Number.parseFloat(obj.latitude) : undefined,
-      lng: obj.lng ? Number.parseFloat(obj.lng) : obj.longitude ? Number.parseFloat(obj.longitude) : undefined,
-      required_skills: normalizeList(obj.skills || obj.required_skills),
-      source_type: normalizeSource(obj.source_type),
-      verification_status: obj.verified === 'true' || obj.verified === 'TRUE' ? 'VERIFIED' : 'UNVERIFIED',
+      lat: obj.lat ? Number.parseFloat(obj.lat) : undefined,
+      lng: obj.lng ? Number.parseFloat(obj.lng) : undefined,
+      required_skills: normalizeList(obj.required_skills),
+      source_type: (obj.source_type?.toUpperCase() === 'PUBLIC' ? 'PUBLIC' : 'NGO') as 'PUBLIC'|'NGO',
+      verification_status: obj.verification_status?.toUpperCase() === 'VERIFIED' ? 'VERIFIED' : 'UNVERIFIED',
       priority_score: Number.parseFloat(obj.priority_score || '0') || 0,
-      urgency_level: normalizeUrgency(obj.priority_label || obj.urgency_level) ?? 'LOW',
+      urgency_level: normalizeUrgency(obj.urgency_level) ?? 'LOW',
       status: normalizeStatus(obj.status),
-      timestamp: obj.timestamp || new Date().toISOString(),
-      submitted_by: obj.email || 'ngo@email.com',
+      timestamp: obj.timestamp || obj.created_at || new Date().toISOString(),
+      submitted_by: obj.submitted_by || 'ngo@email.com',
       assigned_to: obj.assigned_to || undefined,
     } as ReliefTask & { people: number };
   }).sort((a, b) => b.priority_score - a.priority_score);
 
-  console.log('[Final Structured Tasks]:', formatted);
   return formatted;
 };
 
 // Format logic for Volunteers
-const formatVolunteers = (rows: Record<string, string>[]): Volunteer[] => {
-  if (!rows.length) return [];
+const formatVolunteers = (rows: any[]): Volunteer[] => {
+  if (!rows?.length) return [];
 
   const formatted = rows.map((obj, i) => {
     return {
-      id: `vol-${obj.email || obj.name || 'row'}-${i}`,
-      name: obj.name || 'Unknown',
+      id: obj.id || `vol-${i}`,
+      name: obj.name || obj.full_name || 'Unknown',
       email: obj.email || '',
       location: obj.location || 'Unknown',
       skills: normalizeList(obj.skills),
-      availability: 'PART_TIME',
-      tasks_completed: 0,
-      rating: 5
+      availability: obj.availability || 'PART_TIME',
+      tasks_completed: obj.tasks_completed || 0,
+      rating: obj.rating ? Number.parseFloat(obj.rating) : 5.0
     } as Volunteer;
   });
 
-  console.log('[Final Structured Volunteers]:', formatted);
   return formatted;
 };
 
@@ -272,12 +148,33 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     });
   },
 
-  updateTaskStatus: (taskId, status) => {
+  updateTaskStatus: async (taskId, status) => {
+    // Optimistic update locally
     set((state) => ({
       tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, status } : t)),
     }));
     get().applyFilters();
     get().computeStats();
+
+    // Async push to Supabase
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const currentUserEmail = session?.user?.email || 'unknown_volunteer@email.com';
+
+      // 1. Mark task as assigned
+      await supabase.from('tasks').update({ status }).eq('id', taskId);
+
+      // 2. Track internal volunteer assignment
+      if (status === 'ASSIGNED') {
+        await supabase.from('task_assignments').insert({
+          task_id: taskId,
+          volunteer_email: currentUserEmail,
+          status: 'ASSIGNED'
+        });
+      }
+    } catch (e) {
+      console.error("Failed to update status in DB:", e);
+    }
   },
 
   initializeMockData: () => {
@@ -288,18 +185,21 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   loadCSVData: async () => {
-    console.log("[loadCSVData] Started fetching live data...");
+    console.log("[loadSupabaseData] Fetching from Supabase instead of CSV");
     set({ isLoading: true });
     try {
-      const [ngoRows, volRows] = await Promise.all([
-        fetchCSV(NGO_URL, "NGO"),
-        fetchCSV(VOL_URL, "Volunteers")
+      const [tasksRes, volsRes, profilesRes] = await Promise.all([
+        supabase.from('tasks').select('*'),
+        supabase.from('volunteers').select('*'),
+        supabase.from('profiles').select('*').eq('role', 'volunteer')
       ]);
-      const tasks = formatTasks(ngoRows);
-      const volunteers = formatVolunteers(volRows);
 
-      console.log("[loadCSVData] Next task payload", tasks);
-      console.log("[loadCSVData] Next volunteer payload", volunteers);
+      // We combine 'volunteers' (piped via n8n) and 'profiles' (signed up locally)
+      // to yield a robust list of all network volunteers!
+      const allVolunteersData = [...(volsRes.data || []), ...(profilesRes.data || [])];
+      
+      const tasks = formatTasks(tasksRes.data || []);
+      const volunteers = formatVolunteers(allVolunteersData);
 
       set(() => ({
         tasks: [...tasks],
@@ -308,16 +208,10 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
         isLoading: false,
       }));
 
-      const updatedState = get();
-      console.log("[loadCSVData] State successfully updated with new data", {
-        taskCount: updatedState.tasks.length,
-        volunteerCount: updatedState.volunteers.length,
-      });
-
       get().applyFilters();
       get().computeStats();
     } catch (e) {
-      console.error("[loadCSVData] Error loading CSV:", e);
+      console.error("[loadSupabaseData] Error loading from Supabase:", e);
       set({ isLoading: false });
     }
   },

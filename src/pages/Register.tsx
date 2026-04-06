@@ -1,20 +1,78 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link, useNavigate } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/lib/supabase";
 
 const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { toast } = useToast();
+  
+  // Volunteer specifics
+  const [location, setLocation] = useState("");
+  const [skills, setSkills] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // NGO specifics
+  const [orgName, setOrgName] = useState("");
+
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleVolunteerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({ title: "Backend Required", description: "Enable Lovable Cloud for authentication." });
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            role: 'volunteer',
+            location,
+            skills: skills.split(',').map(s => s.trim()),
+          }
+        }
+      });
+      if (error) throw error;
+      toast({ title: "Success!", description: "Volunteer account created successfully." });
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleNGOSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            organization_name: orgName,
+            role: 'ngo'
+          }
+        }
+      });
+      if (error) throw error;
+      toast({ title: "Success!", description: "NGO account created successfully." });
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -32,21 +90,64 @@ const Register = () => {
         </div>
 
         <div className="rounded-xl border bg-card p-6 shadow-[var(--card-shadow)]">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label htmlFor="name">Full Name</Label>
-              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" required />
-            </div>
-            <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
-            </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
-            </div>
-            <Button type="submit" className="w-full" size="lg">Create Account</Button>
-          </form>
+          <Tabs defaultValue="volunteer" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="volunteer">Volunteer</TabsTrigger>
+              <TabsTrigger value="ngo">NGO</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="volunteer">
+              <form onSubmit={handleVolunteerSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="v-name">Full Name</Label>
+                  <Input id="v-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" required />
+                </div>
+                <div>
+                  <Label htmlFor="v-email">Email</Label>
+                  <Input id="v-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required />
+                </div>
+                <div>
+                  <Label htmlFor="v-location">Location (City area)</Label>
+                  <Input id="v-location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Whitefield" required />
+                </div>
+                <div>
+                  <Label htmlFor="v-skills">Skills</Label>
+                  <Input id="v-skills" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder="e.g. Logistics, Medical, Heavy Lifting" />
+                </div>
+                <div>
+                  <Label htmlFor="v-password">Password</Label>
+                  <Input id="v-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
+                </div>
+                <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                  {isLoading ? "Creating Account..." : "Join as Volunteer"}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="ngo">
+              <form onSubmit={handleNGOSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="n-org">Organization Name</Label>
+                  <Input id="n-org" value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="e.g. Red Cross" required />
+                </div>
+                <div>
+                  <Label htmlFor="n-name">Contact Person Full Name</Label>
+                  <Input id="n-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your full name" required />
+                </div>
+                <div>
+                  <Label htmlFor="n-email">Organization Email</Label>
+                  <Input id="n-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="org@example.com" required />
+                </div>
+                <div>
+                  <Label htmlFor="n-password">Password</Label>
+                  <Input id="n-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required />
+                </div>
+                <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+                  {isLoading ? "Registering..." : "Register NGO"}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t" /></div>

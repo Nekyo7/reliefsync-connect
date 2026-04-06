@@ -1,6 +1,8 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { AlertTriangle, CheckCircle, Clock, Users, MapPin } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, Users, MapPin, Calendar, Activity } from "lucide-react";
 import type { ReliefTask } from "@/types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useState } from "react";
 
 interface NGODashboardProps {
   stats: any;
@@ -9,23 +11,36 @@ interface NGODashboardProps {
 }
 
 export default function NGODashboard({ stats, tasks, userEmail }: NGODashboardProps) {
-  const myTasks = tasks.filter((task) => task.submitted_by === userEmail);
+  const [selectedTask, setSelectedTask] = useState<ReliefTask | null>(null);
+
+  // Filter ONLY to the NGO's tasks and sort newest first
+  const myTasks = tasks
+    .filter((task) => task.submitted_by === userEmail)
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  // Derive stats exclusively from myTasks
+  const myStats = {
+    total_tasks: myTasks.length,
+    critical_tasks: myTasks.filter(t => t.urgency_level === 'CRITICAL').length,
+    completed_tasks: myTasks.filter(t => t.status === 'COMPLETED').length,
+    active_volunteers: stats.active_volunteers // Global value for reference
+  };
 
   const statCards = [
-    { label: "Total Tasks", value: stats.total_tasks, icon: Clock, color: "bg-primary/10 text-primary" },
-    { label: "Critical", value: stats.critical_tasks, icon: AlertTriangle, color: "bg-urgency-critical/10 text-urgency-critical" },
-    { label: "Completed", value: stats.completed_tasks, icon: CheckCircle, color: "bg-urgency-low/10 text-urgency-low" },
-    { label: "Active Volunteers", value: stats.active_volunteers, icon: Users, color: "bg-secondary/20 text-secondary-foreground" },
+    { label: "My Total Needs", value: myStats.total_tasks, icon: Clock, color: "bg-primary/10 text-primary" },
+    { label: "My Critical Priorities", value: myStats.critical_tasks, icon: AlertTriangle, color: "bg-urgency-critical/10 text-urgency-critical" },
+    { label: "My Completed Needs", value: myStats.completed_tasks, icon: CheckCircle, color: "bg-urgency-low/10 text-urgency-low" },
+    { label: "Network Volunteers", value: myStats.active_volunteers, icon: Users, color: "bg-secondary/20 text-secondary-foreground" },
   ];
 
   const urgencyData = [
-    { name: 'Critical', count: tasks.filter((task) => task.urgency_level === 'CRITICAL').length, fill: 'hsl(0, 72%, 51%)' },
-    { name: 'High', count: tasks.filter((task) => task.urgency_level === 'HIGH').length, fill: 'hsl(25, 95%, 53%)' },
-    { name: 'Medium', count: tasks.filter((task) => task.urgency_level === 'MEDIUM').length, fill: 'hsl(43, 90%, 55%)' },
-    { name: 'Low', count: tasks.filter((task) => task.urgency_level === 'LOW').length, fill: 'hsl(152, 45%, 40%)' },
+    { name: 'Critical', count: myTasks.filter((task) => task.urgency_level === 'CRITICAL').length, fill: 'hsl(0, 72%, 51%)' },
+    { name: 'High', count: myTasks.filter((task) => task.urgency_level === 'HIGH').length, fill: 'hsl(25, 95%, 53%)' },
+    { name: 'Medium', count: myTasks.filter((task) => task.urgency_level === 'MEDIUM').length, fill: 'hsl(43, 90%, 55%)' },
+    { name: 'Low', count: myTasks.filter((task) => task.urgency_level === 'LOW').length, fill: 'hsl(152, 45%, 40%)' },
   ];
 
-  const categoryData = tasks.reduce((accumulator, task) => {
+  const categoryData = myTasks.reduce((accumulator, task) => {
     const existingCategory = accumulator.find((item) => item.name === task.category);
     if (existingCategory) existingCategory.count += 1;
     else accumulator.push({ name: task.category, count: 1 });
@@ -89,19 +104,72 @@ export default function NGODashboard({ stats, tasks, userEmail }: NGODashboardPr
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {myTasks.map((task) => (
-            <div key={task.id} className="rounded-xl border bg-background p-4 shadow-sm">
-              <h4 className="font-heading font-semibold text-foreground line-clamp-1">{task.title}</h4>
-              <div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
+            <div 
+              key={task.id} 
+              onClick={() => setSelectedTask(task)}
+              className="rounded-xl border bg-background p-4 shadow-sm cursor-pointer hover:border-primary/50 transition-colors hover:shadow-md"
+            >
+              <div className="flex justify-between items-start gap-2 mb-2">
+                <h4 className="font-heading font-semibold text-foreground line-clamp-1">{task.title}</h4>
+                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${task.urgency_level === 'CRITICAL' ? 'bg-red-100 text-red-700' : 'bg-primary/10 text-primary'}`}>
+                  {task.urgency_level}
+                </span>
+              </div>
+              <div className="mt-2 flex flex-col gap-2 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {task.location}</span>
-                <span>Volunteers Needed: {(task as any).people || "0"}</span>
-                <span className="mt-2 text-xs font-semibold">
-                  Status: {task.status !== 'OPEN' ? <span className="text-primary tracking-wide">Assigned</span> : "Unassigned"}
+                <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {new Date(task.timestamp).toLocaleDateString()}</span>
+                <span className="mt-2 text-xs font-semibold flex items-center justify-between">
+                  <span>Status: {task.status !== 'OPEN' ? <span className="text-primary tracking-wide">Assigned</span> : "Unassigned"}</span>
+                  <span className="text-[10px] underline underline-offset-2">View details</span>
                 </span>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      <Dialog open={!!selectedTask} onOpenChange={(open) => !open && setSelectedTask(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-xl">{selectedTask?.title}</DialogTitle>
+            <DialogDescription>
+              Posted on {selectedTask && new Date(selectedTask.timestamp).toLocaleString()}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTask && (
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center gap-2">
+                <span className={`rounded-full px-2 py-1 text-xs font-bold ${selectedTask.urgency_level === 'CRITICAL' ? 'bg-red-100 text-red-700' : 'bg-primary/10 text-primary'}`}>
+                  {selectedTask.urgency_level} PRIORITY
+                </span>
+                <span className="rounded-full px-2 py-1 text-xs font-bold bg-secondary/20 text-secondary-foreground">
+                  STATUS: {selectedTask.status}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-4 items-center gap-1 text-sm border-t pt-4">
+                <span className="col-span-4 font-semibold text-foreground flex items-center gap-1 mb-1">
+                  <MapPin className="h-4 w-4" /> Location
+                </span>
+                <span className="col-span-4 text-muted-foreground mb-3">{selectedTask.location}</span>
+                
+                <span className="col-span-4 font-semibold text-foreground flex items-center gap-1 mb-1">
+                  <Activity className="h-4 w-4" /> Description
+                </span>
+                <span className="col-span-4 text-muted-foreground mb-3">{selectedTask.description || "No detailed description provided."}</span>
+                
+                <span className="col-span-4 font-semibold text-foreground flex items-center gap-1 mb-1">
+                  <Users className="h-4 w-4" /> Required Skills & Volunteers
+                </span>
+                <span className="col-span-4 text-muted-foreground">
+                  Minimum {(selectedTask as any).people || "1"} volunteer(s) needed.<br/>
+                  Skills: {selectedTask.required_skills.length ? selectedTask.required_skills.join(", ") : "General volunteering"}
+                </span>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
