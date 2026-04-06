@@ -145,23 +145,11 @@ const fetchCSV = async (url: string, label: string) => {
   return mapRowsToObjects(parseCSV(text), label);
 };
 
-// Priority formula
-function getPriority(task: any) {
-  const peopleInt = parseInt(task.people) || 0;
-  return (0.6 * 5) + (0.4 * Math.log(peopleInt + 1));
-}
-
 // Format logic for Tasks
 const formatTasks = (rows: Record<string, string>[]): ReliefTask[] => {
   if (!rows.length) return [];
 
   const formatted = rows.map((obj, i) => {
-    const peopleValue = obj.volunteers_needed || obj.people || obj.people_affected || "0";
-    const fallbackPriority = getPriority({ people: peopleValue });
-    const parsedPriority = Number.parseFloat(obj.priority_score || obj.priority || '');
-    const taskPriority = Number.isFinite(parsedPriority) ? parsedPriority : fallbackPriority;
-    const derivedUrgency = normalizeUrgency(obj.urgency_level || obj.urgency) ?? (taskPriority > 3.5 ? 'CRITICAL' : taskPriority > 3.2 ? 'HIGH' : 'MEDIUM');
-
     return {
       id: `task-${obj.timestamp || obj.title || 'row'}-${i}`,
       title: obj.title || 'Untitled Task',
@@ -172,9 +160,9 @@ const formatTasks = (rows: Record<string, string>[]): ReliefTask[] => {
       lng: obj.lng ? Number.parseFloat(obj.lng) : obj.longitude ? Number.parseFloat(obj.longitude) : undefined,
       required_skills: normalizeList(obj.skills || obj.required_skills),
       source_type: normalizeSource(obj.source_type),
-      verification_status: normalizeVerification(obj.verification_status),
-      priority_score: taskPriority,
-      urgency_level: derivedUrgency,
+      verification_status: obj.verified === 'true' || obj.verified === 'TRUE' ? 'VERIFIED' : 'UNVERIFIED',
+      priority_score: Number.parseFloat(obj.priority_score || '0') || 0,
+      urgency_level: normalizeUrgency(obj.priority_label || obj.urgency_level) ?? 'LOW',
       status: normalizeStatus(obj.status),
       timestamp: obj.timestamp || new Date().toISOString(),
       submitted_by: obj.email || 'ngo@email.com',
