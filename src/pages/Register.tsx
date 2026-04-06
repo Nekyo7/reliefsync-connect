@@ -7,6 +7,19 @@ import { Heart } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { useAuthStore } from "@/store/useAuthStore";
+
+type AccountRole = 'volunteer' | 'ngo';
+
+const isRateLimitError = (message: string) => message.toLowerCase().includes("rate limit");
+const isExistingUserMessage = (message: string) =>
+  message.toLowerCase().includes("already registered") ||
+  message.toLowerCase().includes("user already registered") ||
+  message.toLowerCase().includes("already been registered");
+const isEmailConfirmationMessage = (message: string) =>
+  message.toLowerCase().includes("email not confirmed") ||
+  message.toLowerCase().includes("email link") ||
+  message.toLowerCase().includes("confirm your email");
 
 const Register = () => {
   const [name, setName] = useState("");
@@ -23,26 +36,84 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const checkSession = useAuthStore((state) => state.checkSession);
+
+  const registerOrLogin = async (role: AccountRole) => {
+    const metadata =
+      role === 'volunteer'
+        ? {
+            full_name: name,
+            role,
+            location,
+            skills: skills.split(',').map((skill) => skill.trim()).filter(Boolean),
+          }
+        : {
+            full_name: name,
+            organization_name: orgName,
+            role,
+          };
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: metadata,
+      },
+    });
+
+    if (error) {
+      const errorMessage = error.message || "Unable to create account.";
+
+      if (isRateLimitError(errorMessage) || isExistingUserMessage(errorMessage)) {
+        const signInResult = await supabase.auth.signInWithPassword({ email, password });
+
+        if (!signInResult.error) {
+          const { error: updateError } = await supabase.auth.updateUser({ data: metadata });
+          if (updateError) {
+            throw updateError;
+          }
+          await checkSession();
+          toast({
+            title: "Welcome back",
+            description: "That email already exists, so we signed you in instead.",
+          });
+          navigate("/dashboard");
+          return;
+        }
+
+        if (isEmailConfirmationMessage(signInResult.error.message || "")) {
+          toast({
+            title: "Check your email",
+            description: "This account already exists. Confirm the email we already sent, then sign in.",
+          });
+          return;
+        }
+      }
+
+      throw error;
+    }
+
+    if (data.session) {
+      await checkSession();
+      toast({
+        title: "Success!",
+        description: role === 'ngo' ? "NGO account created successfully." : "Volunteer account created successfully.",
+      });
+      navigate("/dashboard");
+      return;
+    }
+
+    toast({
+      title: "Check your email",
+      description: "Your account was created. Use the confirmation email to finish signing in.",
+    });
+  };
 
   const handleVolunteerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-            role: 'volunteer',
-            location,
-            skills: skills.split(',').map(s => s.trim()),
-          }
-        }
-      });
-      if (error) throw error;
-      toast({ title: "Success!", description: "Volunteer account created successfully." });
-      navigate("/dashboard");
+      await registerOrLogin('volunteer');
     } catch (error: any) {
       toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
     } finally {
@@ -54,20 +125,7 @@ const Register = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-            organization_name: orgName,
-            role: 'ngo'
-          }
-        }
-      });
-      if (error) throw error;
-      toast({ title: "Success!", description: "NGO account created successfully." });
-      navigate("/dashboard");
+      await registerOrLogin('ngo');
     } catch (error: any) {
       toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
     } finally {

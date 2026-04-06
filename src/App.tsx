@@ -21,12 +21,12 @@ const queryClient = new QueryClient();
 
 const Layout = () => {
   const location = useLocation();
-  const { checkSession } = useAuthStore();
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
   const hideNavFooter = ['/login', '/register', '/forgot-password'].includes(location.pathname);
 
   useEffect(() => {
-    checkSession();
-  }, [checkSession]);
+    return initializeAuth();
+  }, [initializeAuth]);
 
   return (
     <>
