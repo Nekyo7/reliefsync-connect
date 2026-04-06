@@ -53,17 +53,12 @@ export default function CoordinatorDashboard({ stats, tasks }: CoordinatorDashbo
               <div className="w-full flex-1">
                 <div className="flex items-start justify-between gap-2 overflow-hidden">
                   <h4 className="font-heading font-semibold text-foreground line-clamp-2">{task.title}</h4>
-                  <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${task.urgency_level === 'CRITICAL' || task.urgency_level === 'HIGH' ? 'bg-red-100 text-red-700' : task.urgency_level === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                    Priority: {task.urgency_level}
+                  <span className={`shrink-0 rounded-full px-2 py-1 text-[10px] font-bold ${task.urgency_level === 'CRITICAL' ? 'bg-urgency-critical/10 text-urgency-critical' : 'bg-urgency-high/10 text-urgency-high'}`}>
+                    {task.urgency_level}
                   </span>
                 </div>
-                <div className="mt-1 flex items-center justify-between w-full">
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <MapPin className="h-3 w-3" /> {task.location}
-                  </div>
-                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700">
-                    Verified: {task.verification_status === 'VERIFIED' ? "Yes" : "No"}
-                  </span>
+                <div className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
+                  <MapPin className="h-3 w-3" /> {task.location}
                 </div>
               </div>
               <div className="w-full rounded-md bg-muted p-3 text-xs text-muted-foreground">

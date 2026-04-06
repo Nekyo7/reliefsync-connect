@@ -1,80 +1,155 @@
 import { create } from 'zustand';
-import type { ReliefTask, DashboardStats, Volunteer } from '@/types';
-import { supabase } from '@/lib/supabase';
-import { mockTasks } from '@/data/mockData';
+import type { DashboardStats, ReliefTask, Volunteer } from '@/types';
 
-const normalizeList = (value: any) => {
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'string') {
-    return value.split(",").map((item) => item.trim()).filter(Boolean);
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTApZNaoVYT_W8C6H7ZBRlFQVa5Z_kW7dDfmFs13Xun8jXYT53MpGyVZ93-jg5Jqc4NXVCtqVXxX-kb/pub?output=csv";
+
+const normalizeCell = (value: string) => value.replace(/^\uFEFF/, '').trim();
+
+const isRowEmpty = (row: string[]) => row.every((cell) => normalizeCell(cell) === '');
+
+const parseCSV = (rawText: string): string[][] => {
+  const text = rawText.replace(/^\uFEFF/, '');
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentCell = '';
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const nextChar = text[index + 1];
+
+    if (char === '"') {
+      if (inQuotes && nextChar === '"') {
+        currentCell += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === ',' && !inQuotes) {
+      currentRow.push(normalizeCell(currentCell));
+      currentCell = '';
+      continue;
+    }
+
+    if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (char === '\r' && nextChar === '\n') {
+        index += 1;
+      }
+
+      currentRow.push(normalizeCell(currentCell));
+      if (!isRowEmpty(currentRow)) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      currentCell = '';
+      continue;
+    }
+
+    currentCell += char;
   }
-  return [];
+
+  if (currentCell.length > 0 || currentRow.length > 0) {
+    currentRow.push(normalizeCell(currentCell));
+    if (!isRowEmpty(currentRow)) {
+      rows.push(currentRow);
+    }
+  }
+
+  return rows;
 };
 
+const normalizeList = (value?: string) =>
+  value
+    ? value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
 const normalizeStatus = (value?: string): ReliefTask['status'] => {
-  const normalized = value?.trim().toUpperCase().replace(/\s+/g, "_");
-  if (normalized === 'ASSIGNED' || normalized === 'IN_PROGRESS' || normalized === 'COMPLETED') return normalized;
+  const normalized = value?.trim().toUpperCase().replace(/\s+/g, '_');
+  if (normalized === 'ASSIGNED' || normalized === 'IN_PROGRESS' || normalized === 'COMPLETED') {
+    return normalized;
+  }
   return 'OPEN';
 };
 
-const normalizeUrgency = (value?: string): ReliefTask['urgency_level'] | null => {
+const normalizeVerification = (value?: string): ReliefTask['verification_status'] => {
   const normalized = value?.trim().toUpperCase();
-  if (normalized === 'LOW' || normalized === 'MEDIUM' || normalized === 'HIGH' || normalized === 'CRITICAL') return normalized;
-  return null;
+  return normalized === 'UNVERIFIED' ? 'UNVERIFIED' : 'VERIFIED';
 };
 
-// Format logic for Tasks
-const formatTasks = (rows: any[]): ReliefTask[] => {
-  if (!rows?.length) return [];
-
-  const formatted = rows.map((obj, i) => {
-    return {
-      id: obj.id || `task-${i}`,
-      title: obj.title || 'Untitled Task',
-      description: obj.description || '',
-      location: obj.location || 'Unknown',
-      category: obj.category || 'General',
-      lat: obj.lat ? Number.parseFloat(obj.lat) : undefined,
-      lng: obj.lng ? Number.parseFloat(obj.lng) : undefined,
-      required_skills: normalizeList(obj.required_skills),
-      source_type: (obj.source_type?.toUpperCase() === 'PUBLIC' ? 'PUBLIC' : 'NGO') as 'PUBLIC'|'NGO',
-      verification_status: obj.verification_status?.toUpperCase() === 'VERIFIED' ? 'VERIFIED' : 'UNVERIFIED',
-      priority_score: Number.parseFloat(obj.priority_score || '0') || 0,
-      urgency_level: normalizeUrgency(obj.urgency_level) ?? 'LOW',
-      status: normalizeStatus(obj.status),
-      timestamp: obj.timestamp || obj.created_at || new Date().toISOString(),
-      submitted_by: obj.submitted_by || 'ngo@email.com',
-      assigned_to: obj.assigned_to || undefined,
-    } as ReliefTask;
-  }).sort((a, b) => b.priority_score - a.priority_score);
-
-  return formatted;
+const normalizeSource = (value?: string): ReliefTask['source_type'] => {
+  const normalized = value?.trim().toUpperCase();
+  return normalized === 'PUBLIC' ? 'PUBLIC' : 'NGO';
 };
 
-// Format logic for Volunteers
-const formatVolunteers = (rows: any[]): Volunteer[] => {
-  if (!rows?.length) return [];
-
-  const formatted = rows.map((obj, i) => {
-    return {
-      id: obj.id || `vol-${i}`,
-      name: obj.name || obj.full_name || 'Unknown',
-      email: obj.email || '',
-      location: obj.location || 'Unknown',
-      skills: normalizeList(obj.skills),
-      availability: obj.availability || 'PART_TIME',
-      tasks_completed: obj.tasks_completed || 0,
-      rating: obj.rating ? Number.parseFloat(obj.rating) : 5.0
-    } as Volunteer;
-  });
-
-  return formatted;
+const normalizeUrgency = (value?: string): ReliefTask['urgency_level'] => {
+  const normalized = value?.trim().toUpperCase();
+  if (normalized === 'LOW' || normalized === 'MEDIUM' || normalized === 'HIGH' || normalized === 'CRITICAL') {
+    return normalized;
+  }
+  return 'MEDIUM';
 };
+
+const computeFallbackPriority = (peopleValue?: string) => {
+  const people = Number.parseInt(peopleValue || '0', 10) || 0;
+  return (0.6 * 5) + (0.4 * Math.log(people + 1));
+};
+
+const rowsToObjects = (rows: string[][]) => {
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const headers = rows[0].map((header) => normalizeCell(header).toLowerCase());
+
+  return rows
+    .slice(1)
+    .map((row) => headers.map((_, index) => normalizeCell(row[index] ?? '')))
+    .filter((row) => !isRowEmpty(row))
+    .map((row) =>
+      headers.reduce<Record<string, string>>((accumulator, header, index) => {
+        accumulator[header || `column_${index}`] = row[index] ?? '';
+        return accumulator;
+      }, {})
+    );
+};
+
+const structureTasks = (rows: Record<string, string>[]): ReliefTask[] =>
+  rows
+    .map((row, index) => {
+      const fallbackPriority = computeFallbackPriority(row.volunteers_needed || row.people || row.people_affected);
+      const parsedPriority = Number.parseFloat(row.priority_score || row.priority || '');
+      const priorityScore = Number.isFinite(parsedPriority) ? parsedPriority : fallbackPriority;
+      const urgencyLevel = normalizeUrgency(row.priority_label || row.urgency_level || row.urgency);
+
+      return {
+        id: row.id || `task-${row.timestamp || row.title || index}`,
+        title: row.title || 'Untitled Task',
+        description: row.description || row.details || '',
+        location: row.location || 'Unknown',
+        lat: row.lat ? Number.parseFloat(row.lat) : row.latitude ? Number.parseFloat(row.latitude) : undefined,
+        lng: row.lng ? Number.parseFloat(row.lng) : row.longitude ? Number.parseFloat(row.longitude) : undefined,
+        category: row.category || 'General',
+        required_skills: normalizeList(row.skills || row.required_skills),
+        timestamp: row.timestamp || new Date().toISOString(),
+        source_type: normalizeSource(row.source_type),
+        verification_status: normalizeVerification(row.verification_status),
+        priority_score: priorityScore,
+        urgency_level: urgencyLevel,
+        status: normalizeStatus(row.status),
+        assigned_to: row.assigned_to || undefined,
+      } satisfies ReliefTask;
+    })
+    .sort((a, b) => b.priority_score - a.priority_score);
 
 interface TaskStore {
   tasks: ReliefTask[];
   filteredTasks: ReliefTask[];
-  volunteers: Volunteer[];
   isLoading: boolean;
   filters: {
     urgency: string | null;
@@ -83,30 +158,23 @@ interface TaskStore {
     search: string;
   };
   stats: DashboardStats;
-  setTasks: (tasks: Omit<ReliefTask, 'id'>[]) => void;
+  rawRows: string[][];
   setFilter: (key: string, value: string | null) => void;
   setSearch: (search: string) => void;
   applyFilters: () => void;
   computeStats: () => void;
-  updateTaskStatus: (taskId: string, status: ReliefTask['status']) => void;
-  initializeMockData: () => void;
+  updateTaskStatus: (taskId: string, status: ReliefTask['status'], assignedTo?: string) => void;
   loadCSVData: () => Promise<void>;
-  matchVolunteer: (volunteer: Volunteer, tasksList?: ReliefTask[]) => ReliefTask[];
+  matchVolunteer: (volunteer: Pick<Volunteer, 'location' | 'skills'>, tasksList?: ReliefTask[]) => ReliefTask[];
 }
 
 export const useTaskStore = create<TaskStore>((set, get) => ({
   tasks: [],
   filteredTasks: [],
-  volunteers: [],
   isLoading: false,
   filters: { urgency: null, verification: null, status: null, search: '' },
   stats: { total_tasks: 0, critical_tasks: 0, verified_tasks: 0, unverified_tasks: 0, completed_tasks: 0, active_volunteers: 0 },
-
-  setTasks: (tasks) => {
-    set({ tasks: tasks as ReliefTask[] });
-    get().applyFilters();
-    get().computeStats();
-  },
+  rawRows: [],
 
   setFilter: (key, value) => {
     set((state) => ({ filters: { ...state.filters, [key]: value } }));
@@ -122,12 +190,16 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
     const { tasks, filters } = get();
     let filtered = [...tasks];
 
-    if (filters.urgency) filtered = filtered.filter((t) => t.urgency_level === filters.urgency);
-    if (filters.verification) filtered = filtered.filter((t) => t.verification_status === filters.verification);
-    if (filters.status) filtered = filtered.filter((t) => t.status === filters.status);
+    if (filters.urgency) filtered = filtered.filter((task) => task.urgency_level === filters.urgency);
+    if (filters.verification) filtered = filtered.filter((task) => task.verification_status === filters.verification);
+    if (filters.status) filtered = filtered.filter((task) => task.status === filters.status);
     if (filters.search) {
-      const s = filters.search.toLowerCase();
-      filtered = filtered.filter((t) => t.title.toLowerCase().includes(s) || t.description.toLowerCase().includes(s) || t.location.toLowerCase().includes(s));
+      const search = filters.search.toLowerCase();
+      filtered = filtered.filter((task) =>
+        task.title.toLowerCase().includes(search) ||
+        task.description.toLowerCase().includes(search) ||
+        task.location.toLowerCase().includes(search)
+      );
     }
 
     filtered.sort((a, b) => b.priority_score - a.priority_score);
@@ -135,99 +207,79 @@ export const useTaskStore = create<TaskStore>((set, get) => ({
   },
 
   computeStats: () => {
-    const { tasks, volunteers } = get();
+    const { tasks } = get();
+    const activeVolunteerSet = new Set(tasks.map((task) => task.assigned_to).filter(Boolean));
+
     set({
       stats: {
         total_tasks: tasks.length,
-        critical_tasks: tasks.filter((t) => t.urgency_level === 'CRITICAL').length,
-        verified_tasks: tasks.filter((t) => t.verification_status === 'VERIFIED').length,
-        unverified_tasks: tasks.filter((t) => t.verification_status === 'UNVERIFIED').length,
-        completed_tasks: tasks.filter((t) => t.status === 'COMPLETED').length,
-        active_volunteers: volunteers.length || 24,
+        critical_tasks: tasks.filter((task) => task.urgency_level === 'CRITICAL').length,
+        verified_tasks: tasks.filter((task) => task.verification_status === 'VERIFIED').length,
+        unverified_tasks: tasks.filter((task) => task.verification_status === 'UNVERIFIED').length,
+        completed_tasks: tasks.filter((task) => task.status === 'COMPLETED').length,
+        active_volunteers: activeVolunteerSet.size,
       },
     });
   },
 
-  updateTaskStatus: async (taskId, status) => {
-    // Optimistic update locally
+  updateTaskStatus: (taskId, status, assignedTo) => {
     set((state) => ({
-      tasks: state.tasks.map((t) => (t.id === taskId ? { ...t, status } : t)),
+      tasks: state.tasks.map((task) =>
+        task.id === taskId
+          ? {
+              ...task,
+              status,
+              assigned_to: assignedTo ?? task.assigned_to,
+            }
+          : task
+      ),
     }));
     get().applyFilters();
     get().computeStats();
-
-    // Async push to Supabase
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const currentUserEmail = session?.user?.email || 'unknown_volunteer@email.com';
-
-      // 1. Mark task as assigned
-      await supabase.from('tasks').update({ status }).eq('id', taskId);
-
-      // 2. Track internal volunteer assignment
-      if (status === 'ASSIGNED') {
-        await supabase.from('task_assignments').insert({
-          task_id: taskId,
-          volunteer_email: currentUserEmail,
-          status: 'ASSIGNED'
-        });
-      }
-    } catch (e) {
-      console.error("Failed to update status in DB:", e);
-    }
-  },
-
-  initializeMockData: () => {
-    if (get().tasks.length === 0) {
-      get().setTasks(mockTasks);
-    }
-    get().loadCSVData();
   },
 
   loadCSVData: async () => {
-    console.log("[loadSupabaseData] Fetching from Supabase instead of CSV");
+    console.log('[fetchTasks] Loading live CSV...');
     set({ isLoading: true });
+
     try {
-      const [tasksRes, volsRes, profilesRes] = await Promise.all([
-        supabase.from('tasks').select('*'),
-        supabase.from('volunteers').select('*'),
-        supabase.from('profiles').select('*').eq('role', 'volunteer')
-      ]);
+      const response = await fetch(`${CSV_URL}&_ts=${Date.now()}`, { cache: 'no-store' });
+      const text = await response.text();
 
-      // We combine 'volunteers' (piped via n8n) and 'profiles' (signed up locally)
-      // to yield a robust list of all network volunteers!
-      const allVolunteersData = [...(volsRes.data || []), ...(profilesRes.data || [])];
-      
-      const tasks = formatTasks(tasksRes.data || []);
-      const volunteers = formatVolunteers(allVolunteersData);
+      console.log('[Raw CSV Text]:', text);
 
-      set(() => ({
-        tasks: [...tasks],
-        filteredTasks: [...tasks],
-        volunteers: [...volunteers],
+      const parsedRows = parseCSV(text);
+      console.log('[Parsed Rows]:', parsedRows);
+
+      const structuredTasks = structureTasks(rowsToObjects(parsedRows));
+      console.log('[Final Structured Data]:', structuredTasks);
+
+      set({
+        rawRows: parsedRows,
+        tasks: structuredTasks,
+        filteredTasks: structuredTasks,
         isLoading: false,
-      }));
+      });
 
       get().applyFilters();
       get().computeStats();
-    } catch (e) {
-      console.error("[loadSupabaseData] Error loading from Supabase:", e);
+    } catch (error) {
+      console.error('[fetchTasks] Failed to load CSV:', error);
       set({ isLoading: false });
     }
   },
 
   matchVolunteer: (volunteer, tasksList) => {
     const tasks = tasksList || get().tasks;
-    const volLoc = volunteer.location.trim().toLowerCase();
+    const volunteerLocation = volunteer.location.trim().toLowerCase();
+    const volunteerSkills = volunteer.skills.map((skill) => skill.trim().toLowerCase());
+
     return tasks
-      .filter((task) => {
-        if (task.status !== "OPEN") return false;
-        const taskLoc = task.location.trim().toLowerCase();
-        if (taskLoc !== volLoc) return false;
-        return task.required_skills.some((skill) =>
-          volunteer.skills.some((vSkill) => vSkill.trim().toLowerCase() === skill.trim().toLowerCase())
-        );
-      })
+      .filter((task) => task.status === 'OPEN')
+      .filter((task) => task.location.trim().toLowerCase() === volunteerLocation)
+      .filter((task) =>
+        task.required_skills.some((skill) => volunteerSkills.includes(skill.trim().toLowerCase()))
+      )
       .sort((a, b) => b.priority_score - a.priority_score)
       .slice(0, 3);
   },

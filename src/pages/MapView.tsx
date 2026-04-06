@@ -6,9 +6,18 @@ import { getCoords } from "@/utils/mapUtils";
 const MapView = () => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
-  const { tasks, initializeMockData } = useTaskStore();
+  const tasks = useTaskStore((state) => state.tasks);
+  const loadCSVData = useTaskStore((state) => state.loadCSVData);
 
-  useEffect(() => { initializeMockData(); }, [initializeMockData]);
+  useEffect(() => {
+    void loadCSVData();
+
+    const intervalId = window.setInterval(() => {
+      void loadCSVData();
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadCSVData]);
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;

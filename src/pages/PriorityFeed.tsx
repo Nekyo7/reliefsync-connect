@@ -12,10 +12,18 @@ const PriorityFeed = () => {
   const isLoading = useTaskStore((state) => state.isLoading);
   const setFilter = useTaskStore((state) => state.setFilter);
   const setSearch = useTaskStore((state) => state.setSearch);
-  const initializeMockData = useTaskStore((state) => state.initializeMockData);
+  const loadCSVData = useTaskStore((state) => state.loadCSVData);
   const [selectedTask, setSelectedTask] = useState<ReliefTask | null>(null);
 
-  useEffect(() => { initializeMockData(); }, [initializeMockData]);
+  useEffect(() => {
+    void loadCSVData();
+
+    const intervalId = window.setInterval(() => {
+      void loadCSVData();
+    }, 10000);
+
+    return () => window.clearInterval(intervalId);
+  }, [loadCSVData]);
 
   const urgencyOptions = [null, 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const;
   const statusOptions = [null, 'OPEN', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'] as const;
